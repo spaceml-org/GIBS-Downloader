@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 
-import numpy as np
-import pandas as pd
 import os
 import shutil
-from osgeo import gdal
-import tensorflow as tf
-
 import argparse
 from argparse import ArgumentParser
 from enum import Enum
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+
+from osgeo import gdal
+
 
 #### TODO #####
 # 1. Handling the boundaries for tiling with enums
 # 2. Logging
 
-# Other notes: 
-#   include tutorial on installing gdal in readme
+# Constants
+MAX_FILE_SIZE = 100000000 # 100 MB recommended TFRecord file size
+
 
 # Enum to decide how to handle images at boundaries
 class Handling(Enum):
@@ -63,10 +66,10 @@ def _int64_feature(value):
 def image_example(date, img_path, coords):
   image_raw = open(img_path, 'rb').read()
 
-  ulx = coords[0]
-  uly = coords[1]
-  lrx = coords[2]
-  lry = coords[3]
+  ul_x = coords[0]
+  ul_y = coords[1]
+  lr_x = coords[2]
+  lr_y = coords[3]
 
   image_shape = tf.image.decode_png(image_raw).shape
 
@@ -75,10 +78,10 @@ def image_example(date, img_path, coords):
      'image_raw': _bytes_feature(image_raw),
      'width': _int64_feature(image_shape[0]),
      'height': _int64_feature(image_shape[1]),
-     'top_left_lat' : _float_feature(uly),
-     'top_left_long' :_float_feature(ulx),
-     'bot_right_lat' : _float_feature(lry),
-     'bot_right_long' : _float_feature(lrx),
+     'top_left_lat' : _float_feature(ul_y),
+     'top_left_long' :_float_feature(ul_x),
+     'bot_right_lat' : _float_feature(lr_y),
+     'bot_right_long' : _float_feature(lr_x),
   }
 
   return tf.train.Example(features=tf.train.Features(feature=feature))
@@ -92,13 +95,13 @@ def download_area_tiff(extent: tuple, date: str, output: str):
   output: path/to/filename (don't specify extension)
   returns tuple with dowloaded width and height
   """
-  uly = extent[0]
-  ulx = extent[1]
-  lry = extent[2]
-  lrx = extent[3]
+  ul_y = extent[0]
+  ul_x = extent[1]
+  lr_y = extent[2]
+  lr_x = extent[3]
 
-  width, height = calculate_width_height([lry, ulx, uly, lrx], .25)
-  lat_lon = "{ux} {uy} {lx} {ly}".format(ux=ulx, uy=uly, lx=lrx, ly=lry)
+  width, height = calculate_width_height([lr_y, ul_x, ul_y, lr_x], .25)
+  lat_lon = "{ux} {uy} {lx} {ly}".format(ux=ul_x, uy=ul_y, lx=lr_x, ly=lr_y)
 
   base = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} '<GDAL_WMS><Service name=\"TMS\"><ServerUrl>https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/{d}/250m/".format(w=width, h=height, ll=lat_lon, d=date)
   end = "${z}/${y}/${x}.jpg</ServerUrl></Service><DataWindow><UpperLeftX>-180.0</UpperLeftX><UpperLeftY>90</UpperLeftY><LowerRightX>396.0</LowerRightX><LowerRightY>-198</LowerRightY><TileLevel>8</TileLevel><TileCountX>2</TileCountX><TileCountY>1</TileCountY><YOrigin>top</YOrigin></DataWindow><Projection>EPSG:4326</Projection><BlockSizeX>512</BlockSizeX><BlockSizeY>512</BlockSizeY><BandsCount>3</BandsCount></GDAL_WMS>' "
@@ -142,11 +145,11 @@ def img_to_tiles(tiff_path, tile_width, tile_height, overlap, output_path, tile_
       if(HEIGHT - y < tile_height):
         y = HEIGHT - tile_height
         done_y = True
-      ulx = x * x_size + x_min #x pixel
-      uly = y * y_size + y_min #y pixel
-      lrx = (x + tile_width) * x_size + x_min #x pixel
-      lry = (y + tile_width) * y_size + y_min #y pixel
-      output_filename = output_base + str(f'{round(uly, 4):08}') + '_' + str(f'{round(ulx, 4):09}') + '_' + str(f'{round(lry, 4):08}') + '_' + str(f'{round(lrx, 4):09}')
+      ul_x = x * x_size + x_min #x pixel
+      ul_y = y * y_size + y_min #y pixel
+      lr_x = (x + tile_width) * x_size + x_min #x pixel
+      lr_y = (y + tile_width) * y_size + y_min #y pixel
+      output_filename = output_base + str(f'{round(ul_y, 4):08}') + '_' + str(f'{round(ul_x, 4):09}') + '_' + str(f'{round(lr_y, 4):08}') + '_' + str(f'{round(lr_x, 4):09}')
       command = "gdal_translate -of JPEG -srcwin --config GDAL_PAM_ENABLED NO " + str(x)+ ", " + str(y) + ", " + str(tile_width) + ", " + str(tile_height) + " " + str(tiff_path) + " " + str(output_path) + str(output_filename) + ".jpeg"
       os.system(command)
       y += y_step
@@ -160,15 +163,15 @@ def write_to_tfrecords(input_path, output_path):
     while(cnt < len(files)):
       total_file_size = 0
       with tf.io.TFRecordWriter(output_path + 'modis_tf' + str(version) + '.tfrecord') as writer:
-        while(total_file_size < 100000000 and cnt < len(files)):  
+        while(total_file_size < MAX_FILE_SIZE and cnt < len(files)):  
           fn = files[cnt]
           date = fn[-53:-42]
-          uly = float(fn[-41:-34])
-          ulx = float(fn[-33:-24])
-          lry = float(fn[-23:-15])
-          lrx = float(fn[-14:-5])
+          ul_y = float(fn[-41:-34])
+          ul_x = float(fn[-33:-24])
+          lr_y = float(fn[-23:-15])
+          lr_x = float(fn[-14:-5])
           total_file_size += os.path.getsize(directory + '/' + fn)
-          tf_example = image_example(date, directory + '/' + fn, (uly, ulx, lry, lrx))
+          tf_example = image_example(date, directory + '/' + fn, (ul_y, ul_x, lr_y, lr_x))
           writer.write(tf_example.SerializeToString())
           cnt += 1
       version += 1
