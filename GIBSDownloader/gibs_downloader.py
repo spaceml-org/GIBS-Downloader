@@ -12,7 +12,6 @@ import tensorflow as tf
 
 from osgeo import gdal
 
-
 #### TODO #####
 # 1. Handling the boundaries for tiling with enums
 # 2. Logging
@@ -262,8 +261,6 @@ def cli_main():
     shutil.rmtree(originals_path)
     os.mkdir(originals_path)
 
-# 42.285259 -88.626907 41.514241 -87.059512 Chicago 
-# 40.353784 -124.328539 37.003277 -120.253964 Bay Area
 
 if __name__ == "__main__":
   cli_main()
