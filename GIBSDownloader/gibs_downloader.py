@@ -191,7 +191,7 @@ def cli_main():
   parser.add_argument("--tile-width", default=512, type=int, help="tiled image width")
   parser.add_argument("--tile-height", default=512, type=int, help="tiled image height")
   parser.add_argument("--tile-overlap", default=0.5, type=float, help="percent overlap for each tile")
-  parser.add_argument("--boundary-handling", default=Handling.include_incomplete_tiles, type=Handling, help="define how to handle tiles at image boundaries")
+  # parser.add_argument("--boundary-handling", default=Handling.include_incomplete_tiles, type=Handling, help="define how to handle tiles at image boundaries")
 
   parser.add_argument("--remove-originals", default=False, type=bool, help="keep/delete original downloaded images")
   parser.add_argument("--generate-tfrecords", default=False, type=bool, help="generate tfrecords for image tiles")
@@ -215,7 +215,7 @@ def cli_main():
   tile_width = args.tile_width
   tile_height = args.tile_height
   tile_overlap = args.tile_overlap
-  boundary_handling = args.boundary_handling
+  # boundary_handling = args.boundary_handling
 
   remove_originals = args.remove_originals
   write_tfrecords = args.generate_tfrecords
