@@ -13,18 +13,17 @@ import tensorflow as tf
 from osgeo import gdal
 
 #### TODO #####
-# 1. Handling the boundaries for tiling with enums
-# 2. Logging
+# 1. Logging
 
 # Constants
-MAX_FILE_SIZE = 100000000 # 100 MB recommended TFRecord file size
+MAX_FILE_SIZE = 100_000_000 # 100 MB recommended TFRecord file size
 
 
 # Enum to decide how to handle images at boundaries
 class Handling(Enum):
   complete_tiles_shift = 'complete-tiles-shift'
-  include_incomplete_tiles = 'include-incomplete_tiles'
-  discard_incomplete_tiles = 'discard-incomplete_tiles'
+  include_incomplete_tiles = 'include-incomplete-tiles'
+  discard_incomplete_tiles = 'discard-incomplete-tiles'
   
   def __str__(self):
     return self.value
@@ -110,7 +109,7 @@ def download_area_tiff(extent: tuple, date: str, output: str):
   return filename
 
 ###### Main tiling function ######
-def img_to_tiles(tiff_path, tile_width, tile_height, overlap, output_path, tile_index):
+def img_to_tiles(tiff_path, tile_width, tile_height, overlap, output_path, handling):
   date = tiff_path[-14:-4]
   
   output_base = date + "_"
@@ -133,16 +132,36 @@ def img_to_tiles(tiff_path, tile_width, tile_height, overlap, output_path, tile_
 
   if (tile_width > WIDTH or tile_height > HEIGHT):
     raise argparse.ArgumentTypeError("Tiling dimensions greater than image dimensions")
+
+  discard_incomplete = False
+  complete_shift = False
+  include_incomplete = False
+  handling_str = str(handling)
+  
+  if handling_str == 'complete-tiles-shift':
+    complete_shift = True
+  elif handling_str == 'include-incomplete-tiles':
+    include_incomplete = True
+  elif handling_str == 'discard-incomplete-tiles':
+    discard_incomplete = True
   
   while(x < WIDTH and not done_x):
     if(WIDTH - x < tile_width):
-      x = WIDTH - tile_width
+      if discard_incomplete:
+        done_x = True
+        continue
+      if complete_shift:
+        x = WIDTH - tile_width
       done_x = True
     done_y = False
     y = 0
     while (y < HEIGHT and not done_y):
       if(HEIGHT - y < tile_height):
-        y = HEIGHT - tile_height
+        if discard_incomplete:
+          done_y = True
+          continue
+        if complete_shift:
+          y = HEIGHT - tile_height
         done_y = True
       ul_x = x * x_size + x_min #x pixel
       ul_y = y * y_size + y_min #y pixel
@@ -153,6 +172,7 @@ def img_to_tiles(tiff_path, tile_width, tile_height, overlap, output_path, tile_
       os.system(command)
       y += y_step
     x += x_step
+
 
 ###### MAIN WRITING TO TFRECORD FUNCTION ######
 def write_to_tfrecords(input_path, output_path):
@@ -180,10 +200,8 @@ def cli_main():
   parser.add_argument("start_date", metavar='start-date', type=str, help="starting date for downloads")
   parser.add_argument("end_date", metavar='end-date',type=str, help="ending date for downloads")
 
-  parser.add_argument("upper_lat", metavar='upper-lat', type=float, help="coordinates for upper latitude")
-  parser.add_argument("left_lon", metavar='left-lon', type=float, help="coordinates for left longitude")  
-  parser.add_argument("lower_lat", metavar='lower-lat', type=float, help="coordinates for lower latitude")
-  parser.add_argument("right_lon", metavar='right-lon', type=float, help="coordinates for right longitude")
+  parser.add_argument("top_left_coords", metavar='top-left-coords', type=str, help="coordinates for top left corner formatted lat,lon (NO SPACE)")
+  parser.add_argument("bottom_right_coords", metavar='bottom-right-coords', type=str, help="coordinates for left longitude formatted lat,lon (NO SPACE)")  
 
   parser.add_argument("--output-path", default=os.getcwd(), type=str, help="path to output directory")
 
@@ -191,11 +209,12 @@ def cli_main():
   parser.add_argument("--tile-width", default=512, type=int, help="tiled image width")
   parser.add_argument("--tile-height", default=512, type=int, help="tiled image height")
   parser.add_argument("--tile-overlap", default=0.5, type=float, help="percent overlap for each tile")
-  # parser.add_argument("--boundary-handling", default=Handling.include_incomplete_tiles, type=Handling, help="define how to handle tiles at image boundaries")
+  parser.add_argument("--boundary-handling", default=Handling.complete_tiles_shift, type=Handling, help="define how to handle tiles at image boundaries", choices=list(Handling))
 
   parser.add_argument("--remove-originals", default=False, type=bool, help="keep/delete original downloaded images")
   parser.add_argument("--generate-tfrecords", default=False, type=bool, help="generate tfrecords for image tiles")
-  
+  parser.add_argument("--verbose", default=False, type=bool, help="log downloading process")
+  parser.add_argument("--generate-jpegs", default=False, type=bool, help="generate jpegs of original downloaded images")
   args = parser.parse_args()
 
   start_date = args.start_date
@@ -203,19 +222,24 @@ def cli_main():
 
   output_path = args.output_path
 
-  left_lon = args.left_lon
-  upper_lat = args.upper_lat
-  right_lon = args.right_lon
-  lower_lat = args.lower_lat
+  top_left_coords = [float(i) for i in args.top_left_coords.split(',')]
+  bottom_right_coords = [float(i) for i in args.bottom_right_coords.split(',')]
 
+  upper_lat = top_left_coords[0]
+  left_lon = top_left_coords[1]
+  lower_lat = bottom_right_coords[0]
+  right_lon = bottom_right_coords[1]
+  
   if (right_lon < left_lon or upper_lat < lower_lat):
-    raise argparse.ArgumentTypeError('Coordinates inputted are invalid: order should be (upper latitude, left longitude, lower latitude, right longitude)')
+    raise argparse.ArgumentTypeError('Inputted coordinated are invalid: order should be (upper latitude,left longitude, lower latitude,right longitude)')
   
   tiling = args.tile
   tile_width = args.tile_width
   tile_height = args.tile_height
   tile_overlap = args.tile_overlap
-  # boundary_handling = args.boundary_handling
+  boundary_handling = args.boundary_handling
+
+  logging = args.verbose
 
   remove_originals = args.remove_originals
   write_tfrecords = args.generate_tfrecords
@@ -242,11 +266,9 @@ def cli_main():
     if not os.path.isdir(tile_res_path):
       os.mkdir(tile_res_path)
       for directory, subdirectory, files in os.walk(originals_path):
-        tile_index = 0
         for file in files:
           tiff_path = os.path.join(directory, file)
-          img_to_tiles(tiff_path, tile_width, tile_height, tile_overlap, tile_res_path, tile_index)
-          tile_index += 1
+          img_to_tiles(tiff_path, tile_width, tile_height, tile_overlap, tile_res_path, boundary_handling)
 
   tfrecords_res_path = os.path.join(tfrecords_path, resolution) + '/'
   if write_tfrecords:
