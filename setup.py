@@ -8,27 +8,27 @@ long_description = '''Python wrapper package for NASA GIBS API \
     machine learning pipeline''' 
 
 setup(
-	name ='GIBSDownloader', 
+    name ='GIBSDownloader', 
     version ='0.0.1', 
     author ='Fernando Lisboa, Shivam Verma', 
     author_email ='0fernando.lisboa@gmail.com', 
     url ='https://github.com/spaceml-org/NASA-GIBS-Downloader', 
-	description ='Downloading tool for NASA GIBS', 
-	long_description = long_description, 
-	long_description_content_type ="text/markdown", 
-	license ='MIT', 
-	packages = find_packages(), 
-	entry_points ={ 
-		'console_scripts': [ 
-			'gdl = GIBSDownloader.gibs_downloader:main'
-		] 
-	}, 
-	classifiers =( 
-		"Programming Language :: Python :: 3", 
-		"License :: OSI Approved :: MIT License", 
-		"Operating System :: OS Independent", 
-	), 
-	keywords ='GIBS gdl satellite python package GIBSDownloader', 
-	install_requires = requirements, 
-	zip_safe = False
+    description ='Downloading tool for NASA GIBS', 
+    long_description = long_description, 
+    long_description_content_type ="text/markdown", 
+    license ='MIT', 
+    packages = find_packages(), 
+    entry_points ={ 
+        'console_scripts': [ 
+            'gdl = GIBSDownloader.gibs_downloader:main'
+        ] 
+    }, 
+    classifiers =( 
+        "Programming Language :: Python :: 3", 
+        "License :: OSI Approved :: MIT License", 
+        "Operating System :: OS Independent", 
+    ), 
+    keywords ='GIBS gdl satellite python package GIBSDownloader', 
+    install_requires = requirements, 
+    zip_safe = False
 )
