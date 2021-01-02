@@ -7,7 +7,7 @@ long_description = '''Python wrapper package for NASA GIBS API \
     with additional utility functions to prepare downloaded images for \
     machine learning pipeline''' 
 
-setup(  
+setup(
 	name ='GIBSDownloader', 
     version ='0.0.1', 
     author ='Fernando Lisboa, Shivam Verma', 
