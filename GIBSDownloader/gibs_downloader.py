@@ -12,12 +12,8 @@ import tensorflow as tf
 
 from osgeo import gdal
 
-#### TODO #####
-# 1. Logging
-
 # Constants
 MAX_FILE_SIZE = 100_000_000 # 100 MB recommended TFRecord file size
-
 
 # Enum to decide how to handle images at boundaries
 class Handling(Enum):
@@ -27,7 +23,6 @@ class Handling(Enum):
   
   def __str__(self):
     return self.value
-
 
 ###### Helper function to calculate the proper width/height for requested image ######
 # Taken from https://github.com/NASA-IMPACT/data_share
@@ -44,7 +39,6 @@ def calculate_width_height(extent, resolution):
   height = int((lats[1] - lats[0]) * KM_PER_DEG_AT_EQ / resolution)
   print(width, height)
   return (width, height)
-
 
 ###### FUNCTIONS TO WRITE TO TFRECORDS ######
 def _bytes_feature(value):
@@ -173,7 +167,6 @@ def img_to_tiles(tiff_path, tile_width, tile_height, overlap, output_path, handl
       y += y_step
     x += x_step
 
-
 ###### MAIN WRITING TO TFRECORD FUNCTION ######
 def write_to_tfrecords(input_path, output_path):
   for directory, subdirectories, files in os.walk(input_path):
@@ -195,7 +188,7 @@ def write_to_tfrecords(input_path, output_path):
           cnt += 1
       version += 1
 
-def cli_main():
+def main():
   parser = ArgumentParser()
   parser.add_argument("start_date", metavar='start-date', type=str, help="starting date for downloads")
   parser.add_argument("end_date", metavar='end-date',type=str, help="ending date for downloads")
@@ -214,7 +207,6 @@ def cli_main():
   parser.add_argument("--remove-originals", default=False, type=bool, help="keep/delete original downloaded images")
   parser.add_argument("--generate-tfrecords", default=False, type=bool, help="generate tfrecords for image tiles")
   parser.add_argument("--verbose", default=False, type=bool, help="log downloading process")
-  parser.add_argument("--generate-jpegs", default=False, type=bool, help="generate jpegs of original downloaded images")
   args = parser.parse_args()
 
   start_date = args.start_date
@@ -257,6 +249,8 @@ def cli_main():
     os.mkdir(tfrecords_path)
     dates = pd.date_range(start=args.start_date, end=args.end_date)
     for date in dates:
+      if logging: 
+        print('Downloading:', date)
       download_area_tiff((upper_lat, left_lon, lower_lat, right_lon), date.strftime("%Y-%m-%d"), originals_path)
 
   resolution = str(tile_width) + 'x' + str(tile_height) + '_' + str(tile_overlap)
@@ -268,21 +262,26 @@ def cli_main():
       for directory, subdirectory, files in os.walk(originals_path):
         for file in files:
           tiff_path = os.path.join(directory, file)
+          if logging:
+            print("Tiling image at:", tiff_path)
           img_to_tiles(tiff_path, tile_width, tile_height, tile_overlap, tile_res_path, boundary_handling)
 
   tfrecords_res_path = os.path.join(tfrecords_path, resolution) + '/'
   if write_tfrecords:
     if os.path.isdir(tile_res_path):
       if not os.path.isdir(tfrecords_res_path):
-        os.mkdir(tfrecords_res_path)  
+        os.mkdir(tfrecords_res_path)
+        if logging: 
+          print("Writing files at:", tile_res_path, " to TFRecords")
         write_to_tfrecords(tile_res_path, tfrecords_res_path)
     else: 
       print("Unable to write to TFRecords due to nonexistent tile path")
 
   if remove_originals:
+    if logging: 
+      print("Removing original images...")
     shutil.rmtree(originals_path)
     os.mkdir(originals_path)
 
-
 if __name__ == "__main__":
-  cli_main()
+  main()
