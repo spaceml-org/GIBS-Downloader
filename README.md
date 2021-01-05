@@ -39,7 +39,7 @@ This can be done with the following command:
 `gdl 2020-09-15 2020-09-30 40.353784,-124.328539 37.003277,-120.253964 --tile=true --generate-tfrecords=true`.  
 \
 If we wanted specify the tile size and overlap, while also removing the original downloaded images, the command would be:  
-`gdl 2020-09-15 2020-09-30 40.353784,-124.328539 37.003277,-120.253964 --tile=true --tile-width=224 --tile-height=224 --tile-overlap=0.1 --remove-originals=true --generate-tfrecords=true`  
+`gdl 2020-09-15 2020-09-30 40.353784,-124.328539 37.003277,-120.253964 --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0.1 --remove-originals=true --generate-tfrecords=true`  
 \
 These will create the following directory structure: 
 ```

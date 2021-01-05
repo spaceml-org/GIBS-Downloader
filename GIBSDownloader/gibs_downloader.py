@@ -4,62 +4,24 @@ import os
 import shutil
 import argparse
 from argparse import ArgumentParser
-from enum import Enum
 
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-
 from osgeo import gdal
+
+from coordinate_utils import Coordinate, Rectangle
+from tile import Tile
+from handling import Handling
 
 # Constants
 MAX_FILE_SIZE = 100_000_000 # 100 MB recommended TFRecord file size
-
-# Enum to decide how to handle images at boundaries
-class Handling(Enum):
-    complete_tiles_shift = 'complete-tiles-shift'
-    include_incomplete_tiles = 'include-incomplete-tiles'
-    discard_incomplete_tiles = 'discard-incomplete-tiles'
-    
-    def __str__(self):
-        return self.value
-
-# stores coordinate information 
-class Coordinate():
-    def __init__(self, coords: tuple):
-        """coords: (latitude, longitude)"""
-        self.x = coords[1]
-        self.y = coords[0]
-
-# stores tiling information
-class Tile():
-    def __init__(self, width, height, overlap, handling):
-        self.width = width
-        self.height = height
-        self.overlap = overlap
-        self.handling = handling
-
-###### Helper function to calculate the proper width/height for requested image ######
-# Taken from https://github.com/NASA-IMPACT/data_share
-def calculate_width_height(extent: tuple, resolution: float):
-    """
-    extent: (upper_latitude, left_longitude, lower_latitude, right_longitude)
-    resolution: represents the pixel resolution, i.e. km/pixel. Should be a value from this list: [0.03, 0.06, 0.125, 0.25, 0.5, 1, 5, 10]
-    """
-    KM_PER_DEG_AT_EQ = 111.
-    lats = extent[::2]
-    lons = extent[1::2]
-    km_per_deg_at_lat = KM_PER_DEG_AT_EQ * np.cos(np.pi * np.mean(lats) / 180.)
-    width = int((lons[1] - lons[0]) * km_per_deg_at_lat / resolution)
-    height = int((lats[0] - lats[1]) * KM_PER_DEG_AT_EQ / resolution)
-    print(width, height)
-    return (width, height)
 
 ###### FUNCTIONS TO WRITE TO TFRECORDS ######
 def _bytes_feature(value):
     """Returns a bytes_list from a string / byte."""
     if isinstance(value, type(tf.constant(0))):
-        value = value.numpy() # BytesList won't unpack a string from an EagerTensor.
+        value = value.numpy()
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 def _float_feature(value):
@@ -70,14 +32,8 @@ def _int64_feature(value):
     """Returns an int64_list from a bool / enum / int / uint."""
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
-def image_example(date: str, img_path: str, coords: tuple):
+def image_example(date: str, img_path: str, region: Rectangle):
     image_raw = open(img_path, 'rb').read()
-
-    tl_x = coords[0]
-    tl_y = coords[1]
-    br_x = coords[2]
-    br_y = coords[3]
-
     image_shape = tf.image.decode_png(image_raw).shape
 
     feature = {
@@ -85,30 +41,26 @@ def image_example(date: str, img_path: str, coords: tuple):
         'image_raw': _bytes_feature(image_raw),
         'width': _int64_feature(image_shape[0]),
         'height': _int64_feature(image_shape[1]),
-        'top_left_lat' : _float_feature(tl_y),
-        'top_left_long' :_float_feature(tl_x),
-        'bot_right_lat' : _float_feature(br_y),
-        'bot_right_long' : _float_feature(br_x),
+        'top_left_lat' : _float_feature(region.tl_coords.y),
+        'top_left_long' :_float_feature(region.tl_coords.x),
+        'bot_right_lat' : _float_feature(region.br_coords.y),
+        'bot_right_long' : _float_feature(region.br_coords.x),
     }
 
     return tf.train.Example(features=tf.train.Features(feature=feature))
 ###### END OF TFRECORD HELPER FUNCTIONS ######
 
 ###### MAIN DOWNLOADING FUNCTION ######
-def download_area_tiff(extent, date, output):
+def download_area_tiff(region, date, output):
     """
-    extent: (upper latitude, left longtitude, lower latitude, right longitude)
+    region: rectangular region to be downloaded
     date: YYYY-MM-DD
     output: path/to/filename (do not specify extension)
     returns tuple with dowloaded width and height
     """
-    tl_y = extent[0]
-    tl_x = extent[1]
-    br_y = extent[2]
-    br_x = extent[3]
 
-    width, height = calculate_width_height([tl_y, tl_x, br_y, br_x], .25)
-    lon_lat = "{tx} {ty} {bx} {by}".format(tx=tl_x, ty=tl_y, bx=br_x, by=br_y)
+    width, height = region.calculate_width_height(0.25)
+    lon_lat = "{tl_x} {tl_y} {br_x} {br_y}".format(tl_x=region.tl_coords.x, tl_y=region.tl_coords.y, br_x=region.br_coords.x, br_y=region.br_coords.y)
 
     base = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} '<GDAL_WMS><Service name=\"TMS\"><ServerUrl>https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/{d}/250m/".format(w=width, h=height, ll=lon_lat, d=date)
     end = "${z}/${y}/${x}.jpg</ServerUrl></Service><DataWindow><UpperLeftX>-180.0</UpperLeftX><UpperLeftY>90</UpperLeftY><LowerRightX>396.0</LowerRightX><LowerRightY>-198</LowerRightY><TileLevel>8</TileLevel><TileCountX>2</TileCountX><TileCountY>1</TileCountY><YOrigin>top</YOrigin></DataWindow><Projection>EPSG:4326</Projection><BlockSizeX>512</BlockSizeX><BlockSizeY>512</BlockSizeY><BandsCount>3</BandsCount></GDAL_WMS>' "
@@ -184,13 +136,14 @@ def write_to_tfrecords(input_path, output_path):
                 while(total_file_size < MAX_FILE_SIZE and count < len(files)):    
                     filename = files[count]
                     date = filename[-53:-42]
-                    # following lines get top left and bottom right coordinates from filename
-                    tl_y = float(filename[-41:-34])
-                    tl_x = float(filename[-33:-24])
-                    br_y = float(filename[-23:-15])
-                    br_x = float(filename[-14:-5])
+                    # following lines get top left and bottom right coords from filename
+                    region = Rectangle(
+                        Coordinate(     # Top left coords
+                            (float(filename[-41:-34]), float(filename[-33:-24]))),
+                        Coordinate(     # Bottom right coords
+                            (float(filename[-23:-15]), float(filename[-14:-5]))))
                     total_file_size += os.path.getsize(directory + '/' + filename)
-                    tf_example = image_example(date, directory + '/' + filename, (tl_y, tl_x, br_y, br_x))
+                    tf_example = image_example(date, directory + '/' + filename, region)
                     writer.write(tf_example.SerializeToString())
                     count += 1
             version += 1
@@ -199,7 +152,7 @@ def generate_download_path(start_date, end_date, tl_coords, output):
     base = "modis_{u_lat}_{lft_lon}_{st_date}-{end_date}".format(u_lat=str(round(tl_coords.y, 4)), lft_lon=str(round(tl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
     return os.path.join(output, base)
 
-def download_originals(download_path, originals_path, tiled_path, tfrecords_path, start_date, end_date, logging, tl_coords, br_coords):
+def download_originals(download_path, originals_path, tiled_path, tfrecords_path, start_date, end_date, logging, region):
     if not os.path.isdir(download_path):
         os.mkdir(download_path)
         os.mkdir(originals_path)
@@ -209,7 +162,7 @@ def download_originals(download_path, originals_path, tiled_path, tfrecords_path
         for date in dates:
             if logging: 
                 print('Downloading:', date)
-            download_area_tiff((tl_coords.y, tl_coords.x, br_coords.y, br_coords.x), date.strftime("%Y-%m-%d"), originals_path)
+            download_area_tiff(region, date.strftime("%Y-%m-%d"), originals_path)
     else:
         print("The specified region and set of dates has already been downloaded")
 
@@ -273,6 +226,7 @@ def main():
     # get the latitude, longitude values from the user input
     tl_coords = Coordinate([float(i) for i in args.top_left_coords.split(',')])
     br_coords = Coordinate([float(i) for i in args.bottom_right_coords.split(',')])
+    region = Rectangle(tl_coords, br_coords)
     
     # check if inputted coordinates are valid
     if (br_coords.x < tl_coords.x or tl_coords.y < br_coords.y):
@@ -287,18 +241,14 @@ def main():
     tile_res_path = os.path.join(tiled_path, resolution) + '/'
     tfrecords_res_path = os.path.join(tfrecords_path, resolution) + '/'
 
-    # download the original images if not already downloaded
-    download_originals(download_path, originals_path, tiled_path, tfrecords_path, start_date, end_date, logging, tl_coords, br_coords)
+    download_originals(download_path, originals_path, tiled_path, tfrecords_path, start_date, end_date, logging, region)
 
-    # tile the downloaded images
     if tiling:
         tile_originals(tile_res_path, originals_path, tile, logging)
 
-    # write tiles to TFRecords
     if write_tfrecords:
         tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging)
         
-    # remove original downloaded images
     if rm_originals:
         remove_originals(originals_path, logging)
 
