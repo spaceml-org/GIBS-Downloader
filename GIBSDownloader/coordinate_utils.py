@@ -13,6 +13,20 @@ class Rectangle():
         self.bl_coords = bl_coords
         self.tr_coords = tr_coords
 
+    @classmethod
+    def from_str(cls, input_str):
+        # "038.1579,-121.3758,037.0042,-122.8529"
+        components = input_str.split(',')
+        bl_y = float(components[0])
+        bl_x = float(components[1])
+        tr_y = float(components[2])
+        tr_x = float(components[3])
+
+        bl_coords = Coordinate((bl_y, bl_x))
+        tr_coords = Coordinate((tr_y, tr_x))
+
+        return Rectangle(bl_coords, tr_coords)
+
     # Calculates the necessary width and height of image encompassing Rectangle's bounding box
     # Taken from https://github.com/NASA-IMPACT/data_share
     def calculate_width_height(self, resolution: float):
