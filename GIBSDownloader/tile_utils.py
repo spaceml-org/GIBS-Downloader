@@ -3,9 +3,9 @@ import os
 
 from osgeo import gdal
 
-from tile import Tile
-from handling import Handling
-from file_metadata import TiffMetadata
+from .tile import Tile
+from .handling import Handling
+from .file_metadata import TiffMetadata
 
 class TileUtils():
     @classmethod
