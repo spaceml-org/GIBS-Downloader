@@ -1,5 +1,5 @@
 # NASA-GIBS-Downloader
-NASA-GIBS-Downloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following products: `VIIRS_SNPP_CorrectedReflectance_TrueColor`, `MODIS_Terra_CorrectedReflectance_TrueColor`. You can read more about these products [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products).  
+NASA-GIBS-Downloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following products: `MODIS_Terra_CorrectedReflectance_TrueColor`, `VIIRS_SNPP_CorrectedReflectance_TrueColor`. You can read more about these products [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products).  
 \
 To download imagery of the Bay Area in California from September to October, the tool can be used as follows:  
 `gdl 2020-09-01 2020-10-31 37.003277,-124.328539 40.353784,-120.253964`
@@ -31,6 +31,9 @@ As well as the required positional arguments, the GIBSDownloader also offers som
 * `--generate-tfrecords`: when set to true, the tiles are used to generate 100 MB TFRecord files which contain the tiles as well as the coordinates of the top left and bottom right corner of each tile (defaults to false).    
 * `--remove-originals`: when set to true, the original downloaded images will be deleted and only the tiled images and TFRecords will be saved (defaults to false).  
 * `--verbose`: when set to true, prints additional information about downloading process to console (defaults to false).
+* `--product`: selects which NASA imagery product to download from. There is currently support for two products:
+    - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`
+    - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
 
 ### Example 
 Say we want to download images of the Bay Area in California from 15 September 2020 to 30 September 2020, while also tiling the downloaded images and writing to TFRecords.  
