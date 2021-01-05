@@ -1,8 +1,8 @@
 # NASA-GIBS-Downloader
-NASA-GIBS-Downloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following product: `MODIS_Terra_CorrectedReflectance_TrueColor`. You can read more about this specific product [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products).  
+NASA-GIBS-Downloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following products: `VIIRS_SNPP_CorrectedReflectance_TrueColor`, `MODIS_Terra_CorrectedReflectance_TrueColor`. You can read more about these products [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products).  
 \
 To download imagery of the Bay Area in California from September to October, the tool can be used as follows:  
-`gdl 2020-09-01 2020-10-31 40.353784,-124.328539 37.003277,-120.253964`
+`gdl 2020-09-01 2020-10-31 37.003277,-124.328539 40.353784,-120.253964`
 
 ## Dependencies 
 This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBSDownloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is create a virtual environment in which you will use the GIBSDownloader, and then install GDAL with conda as follows: ``conda install -c conda-forge gdal``.
@@ -16,7 +16,7 @@ Once installed, the packaged can be referenced as `gdl` on the command-line.
 ## Usage
 ### Positional Arguments
 There are four required positional arguments which are as follows:
-`start-date`, `end-date`, `top-left-coords`, `bottom-right-coords`. The first two arguments establish a range of dates to download the images, and the last two arguments form the top left and bottom right coordinates of the desired rectangular region to be downloaded. Note that the top left and bottom right coordinate pairs should be entered as `latitude,longitude`, separated by a comma with no space.
+`start-date`, `end-date`, `bottom-left-coords`, `top-right-coords`. The first two arguments establish a range of dates to download the images, and the last two arguments form the bottom left and top right coordinates of the desired rectangular region to be downloaded. Note that the bottom left and top right coordinate pairs should be entered as `latitude,longitude`, separated by a comma with no space.
 
 ### Optional Parameters
 As well as the required positional arguments, the GIBSDownloader also offers some optional parameters for increased customizability.  
@@ -36,20 +36,20 @@ As well as the required positional arguments, the GIBSDownloader also offers som
 Say we want to download images of the Bay Area in California from 15 September 2020 to 30 September 2020, while also tiling the downloaded images and writing to TFRecords.  
 \
 This can be done with the following command:  
-`gdl 2020-09-15 2020-09-30 40.353784,-124.328539 37.003277,-120.253964 --tile=true --generate-tfrecords=true`.  
+`gdl 2020-09-15 2020-09-30 37.003277,-124.328539 40.353784,-120.253964 --tile=true --generate-tfrecords=true`.  
 \
 If we wanted specify the tile size and overlap, while also removing the original downloaded images, the command would be:  
-`gdl 2020-09-15 2020-09-30 40.353784,-124.328539 37.003277,-120.253964 --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0.1 --remove-originals=true --generate-tfrecords=true`  
+`gdl 2020-09-15 2020-09-30 37.003277,-124.328539 40.353784,-120.253964 --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0 --remove-originals=true --generate-tfrecords=true`  
 \
 These will create the following directory structure: 
 ```
-modis_upper-lat_left-lon_start-date_end-date/
+product_lower-lat_left-lon_start-date_end-date/
       |> original_images/
-           |> modis_date.tif
+           |> product_date.tif
       |> tiled_images/
            |> width_height_overlap/
                 |> date_coordinates.jpeg
       |> tfrecords
            |> width_height_overlap/
-                |> modis_tf.tfrecord
+                |> product_tf.tfrecord
 ```
