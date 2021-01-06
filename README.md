@@ -2,10 +2,10 @@
 NASA-GIBS-Downloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following products: `MODIS_Terra_CorrectedReflectance_TrueColor`, `VIIRS_SNPP_CorrectedReflectance_TrueColor`. You can read more about these products [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products).  
 \
 To download imagery of the Bay Area in California from September to October, the tool can be used as follows:  
-`gdl 2020-09-01 2020-10-31 37.003277,-124.328539 40.353784,-120.253964`
+`gdl 2020-09-01 2020-10-31 37.003277,-124.328539 40.353784,-120.253964`. Note that if the latitude of either the bottom left or top right coordinates is negative, then it will need to be enclosed by quotation marks (ie `"-23.6319752,-46.6173164"`) or else you might get an error.
 
 ## Dependencies 
-This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBSDownloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is create a virtual environment in which you will use the GIBSDownloader, and then install GDAL with conda as follows: ``conda install -c conda-forge gdal``.
+This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBSDownloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is create a virtual environment in which you will use the GIBSDownloader, and then install GDAL with conda as follows: ``conda install -c conda-forge gdal=3.2.0``.
 
 ## Installation
 Once GDAL is installed on your machine, the GIBSDownloader package can be installed using: `pip install git+https://github.com/spaceml-org/NASA-GIBS-Downloader.git#egg=GIBSDownloader`  
@@ -56,3 +56,16 @@ product_lower-lat_left-lon_start-date_end-date/
            |> width_height_overlap/
                 |> product_tf.tfrecord
 ```
+
+## FAQ
+#### How can I find the coordinates of the bottom left the top right corners of the rectangular region that I want to download?
+On [Google Maps](https://www.google.com/maps), you can click on any point on the map, and you will see the latitude and longitude appear for the specific point near the bottom of the page. You can then click on two points that would form the bottom left and top right corners of a rectangular region and copy those coordinates.
+
+#### What is tiling?
+The GeoTiff files for the downloaded regions can potentially be very large images that you might not be able to work with directly (think images of the whole world). Tiling makes smaller "tiles" from the large image, which are essentially smaller images that combine to form the larger one.
+
+#### Can I tile images and write to TFRecords after already having downloaded them?
+If you initially download a region for range of dates without electing to tile the images, you can call the command again with the same coordinates for the region and same range of dates but with the tiling flag set to true, and the package will tile the already downloaded images. You can also call the same command multiple times with varying tile sizes and overlaps, and the package will create new folders in `tiled_images/` for each specified combination of tile size and overlap. It will not download the tiff files for the same region and dates twice. Note that if you select `--remove-originals`, you will not be able to perform these additional tilings after the initial command, as the original images will be deleted.
+
+#### I want to download imagery of the entire Earth. What do I need to know?
+To download the entire Earth, the coordinates you need to enter are: `"-90,-180" 90,180`. The tiff file for one day of the entire Earth is approximately 38 GB.
