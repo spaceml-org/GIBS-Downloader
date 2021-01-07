@@ -1,7 +1,7 @@
 # NASA-GIBS-Downloader
 NASA-GIBS-Downloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following products: `MODIS_Terra_CorrectedReflectance_TrueColor`, `VIIRS_SNPP_CorrectedReflectance_TrueColor`. You can read more about these products [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products).  
 \
-To download imagery of the Bay Area in California from September to October, the tool can be used as follows:  
+For example, to download imagery of the Bay Area in California from September to October, the tool can be used as follows:  
 `gdl 2020-09-01 2020-10-31 37.003277,-124.328539 40.353784,-120.253964`. Note that if the latitude of either the bottom left or top right coordinates is negative, then it will need to be enclosed by quotation marks (ie `"-23.6319752,-46.6173164"`) or else you might get an error.
 
 ## Dependencies 
