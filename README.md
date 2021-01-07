@@ -45,6 +45,7 @@ If we wanted specify the tile size and overlap, while also removing the original
 `gdl 2020-09-15 2020-09-30 37.003277,-124.328539 40.353784,-120.253964 --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0 --remove-originals=true --generate-tfrecords=true`  
 \
 These will create the following directory structure: 
+
 ```
 product_lower-lat_left-lon_start-date_end-date/
       |> original_images/
@@ -59,7 +60,7 @@ product_lower-lat_left-lon_start-date_end-date/
 
 ## FAQ
 #### How can I find the coordinates of the bottom left the top right corners of the rectangular region that I want to download?
-On [Google Maps](https://www.google.com/maps), you can click on any point on the map, and you will see the latitude and longitude appear for the specific point near the bottom of the page. You can then click on two points that would form the bottom left and top right corners of a rectangular region and copy those coordinates.
+On [Google Maps](https://www.google.com/maps), you can right click at any point on the map, and you will be able to copy that point's latitude and longitude. You can then right click on two points that would form the bottom left and top right corners of a rectangular region and copy those coordinates.
 
 #### What is tiling?
 The GeoTiff files for the downloaded regions can potentially be very large images that you might not be able to work with directly (think images of the whole world). Tiling makes smaller "tiles" from the large image, which are essentially smaller images that combine to form the larger one.
@@ -69,3 +70,14 @@ If you initially download a region for range of dates without electing to tile t
 
 #### I want to download imagery of the entire Earth. What do I need to know?
 To download the entire Earth, the coordinates you need to enter are: `"-90,-180" 90,180`. The tiff file for one day of the entire Earth is approximately 38 GB.
+
+## Citation
+If you find GIBSDownloader useful in your research, please consider citing
+```
+@article{lisboa2020democratizing,
+  title={Democratizing Earth Science Research with Accessible Data High-Performance Training Pipelines},
+  author={Lisboa, Fernando and Verma, Shivam and Koul, Anirudh and Kasam, Meher Anand and Ganju, Siddha},
+  journal={Committee on Space Research Cloud Computing Workshop},
+  year={2021}
+}
+```
