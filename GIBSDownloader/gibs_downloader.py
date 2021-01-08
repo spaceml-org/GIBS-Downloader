@@ -70,8 +70,8 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("start_date", metavar='start-date', type=str, help="starting date for downloads")
     parser.add_argument("end_date", metavar='end-date',type=str, help="ending date for downloads")
-    parser.add_argument("bottom_left_coords", metavar='bottom-left-coords', type=str, help="coordinates for bottom left corner formatted lat,lon (NO SPACE)")
-    parser.add_argument("top_right_coords", metavar='top-right-coords', type=str, help="coordinates for top right corner formatted lat,lon (NO SPACE)")    
+    parser.add_argument("bottom_left_coords", metavar='bottom-left-coords', type=str, help='coordinates for bottom left corner formatted "lat, lon"')
+    parser.add_argument("top_right_coords", metavar='top-right-coords', type=str, help='coordinates for top right corner formatted "lat, lon"')    
     parser.add_argument("--output-path", default=os.getcwd(), type=str, help="path to output directory")
     parser.add_argument("--tile", default=False, type=bool, help="tiling flag")
     parser.add_argument("--tile-width", default=512, type=int, help="tiled image width")
@@ -96,8 +96,8 @@ def main():
     product = args.product
 
     # get the latitude, longitude values from the user input
-    bl_coords = Coordinate([float(i) for i in args.bottom_left_coords.split(',')])
-    tr_coords = Coordinate([float(i) for i in args.top_right_coords.split(',')])
+    bl_coords = Coordinate([float(i) for i in args.bottom_left_coords.replace(" ","").split(',')])
+    tr_coords = Coordinate([float(i) for i in args.top_right_coords.replace(" ", "").split(',')])
     region = Rectangle(bl_coords, tr_coords)
     
     # check if inputted coordinates are valid
