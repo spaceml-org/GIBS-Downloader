@@ -53,7 +53,7 @@ class TFRecordUtils():
             version = 0
             while(count < len(files)):
                 total_file_size = 0
-                with tf.io.TFRecordWriter("{path}{name}_tf{v}.tfrecord".format(path=output_path, name=product.get_short_name(), v=str(version))) as writer:
+                with tf.io.TFRecordWriter("{path}{name}_tf{v}.tfrecord".format(path=output_path, name=str(product), v=str(version))) as writer:
                     while(total_file_size < MAX_FILE_SIZE and count < len(files)):    
                         filename = files[count]
                         metadata = TileMetadata(filename)
