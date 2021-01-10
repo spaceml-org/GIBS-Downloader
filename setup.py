@@ -15,8 +15,7 @@ setup(
     url ='https://github.com/spaceml-org/NASA-GIBS-Downloader', 
     description ='Downloading tool for NASA GIBS', 
     long_description = long_description, 
-    long_description_content_type ="text/markdown", 
-    license ='MIT', 
+    long_description_content_type ="text/markdown",  
     packages = find_packages(), 
     entry_points ={ 
         'console_scripts': [ 
@@ -25,7 +24,6 @@ setup(
     }, 
     classifiers =( 
         "Programming Language :: Python :: 3", 
-        "License :: OSI Approved :: MIT License", 
         "Operating System :: OS Independent", 
     ), 
     keywords ='GIBS gdl satellite python package GIBSDownloader', 
