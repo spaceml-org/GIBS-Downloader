@@ -5,7 +5,7 @@ NASA-GIBS-Downloader is a command-line tool which facilitates the downloading of
 This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBSDownloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is create a virtual environment in which you will use the GIBSDownloader, and then install GDAL with conda as follows: ``conda install -c conda-forge gdal=3.2.0``.
 
 ## Installation
-Once GDAL is installed on your machine, the GIBSDownloader package can be installed using: `pip install git+https://github.com/spaceml-org/NASA-GIBS-Downloader.git@fernando/cli-tool#egg=GIBSDownloader`  
+Once GDAL is installed on your machine, the GIBSDownloader package can be installed using: `pip install git+https://github.com/spaceml-org/NASA-GIBS-Downloader.git#egg=GIBSDownloader`  
 Once installed, the packaged can be referenced as `gdl` on the command-line.  
 \
 **NOTE:** this package must be installed in the same virtual environment in which you installed GDAL.
