@@ -42,7 +42,7 @@ def tile_originals(tile_res_path, originals_path, tile, logging):
             for directory, subdirectory, files in os.walk(originals_path):
                 for count, filename in enumerate(files):
                     tiff_path = os.path.join(directory, filename)
-                    print("Tiling {} of {} images".format(count, len(files)))
+                    print("Tiling {} of {} images".format(count+1, len(files)))
                     TileUtils.img_to_tiles(tiff_path, tile, tile_res_path)
     else:
         print("The specified tiles for these images have already been generated")
