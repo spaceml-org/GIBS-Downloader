@@ -1,11 +1,13 @@
 import argparse
 import os
+import math
 
 import numpy as np
 import rasterio
 from matplotlib import pyplot as plt
 from osgeo import gdal
 from PIL import Image
+from tqdm import tqdm
 
 from GIBSDownloader.tile import Tile
 from GIBSDownloader.handling import Handling
@@ -49,6 +51,13 @@ class TileUtils():
 
         if (tile.width > WIDTH or tile.height > HEIGHT):
             raise argparse.ArgumentTypeError("Tiling dimensions greater than image dimensions")
+
+        # Calculate the number of tiles to be generated
+        if tile.handling == Handling.discard_incomplete_tiles:
+            num_iterations = (WIDTH // tile.width) * (HEIGHT // tile.height)
+        else:
+            num_iterations = math.ceil(WIDTH / tile.width) * math.ceil(HEIGHT / tile.height)
+        pbar = tqdm(total=num_iterations) # Create a progress bar for tiling one image
         
         while(x < WIDTH and not done_x):
             if(WIDTH - x < tile.width):
@@ -80,5 +89,7 @@ class TileUtils():
                     tile_img = Image.fromarray(tile_array)
                     tile_img.save(output_path + output_filename + ".jpeg")
 
+                pbar.update(1)
                 y += y_step
             x += x_step
+        pbar.close()
