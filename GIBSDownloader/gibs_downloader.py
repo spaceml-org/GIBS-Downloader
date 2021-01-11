@@ -10,13 +10,13 @@ import pandas as pd
 import tensorflow as tf
 from osgeo import gdal
 
-from .coordinate_utils import Coordinate, Rectangle
-from .tile import Tile
-from .handling import Handling
-from .product import Product
-from .tfrecord_utils import TFRecordUtils
-from .tile_utils import TileUtils
-from .tiff_downloader import TiffDownloader
+from GIBSDownloader.coordinate_utils import Coordinate, Rectangle
+from GIBSDownloader.tile import Tile
+from GIBSDownloader.handling import Handling
+from GIBSDownloader.product import Product
+from GIBSDownloader.tfrecord_utils import TFRecordUtils
+from GIBSDownloader.tile_utils import TileUtils
+from GIBSDownloader.tiff_downloader import TiffDownloader
 
 def generate_download_path(start_date, end_date, bl_coords, output, product):
     base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=str(product), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))

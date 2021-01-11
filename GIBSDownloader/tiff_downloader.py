@@ -1,6 +1,6 @@
 import os
-from .product import Product
-from .coordinate_utils import Rectangle, Coordinate
+from GIBSDownloader.product import Product
+from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 
 class TiffDownloader():
     @classmethod

@@ -1,7 +1,7 @@
 import os
 
-from .coordinate_utils import Rectangle
-from .product import Product
+from GIBSDownloader.coordinate_utils import Rectangle
+from GIBSDownloader.product import Product
 
 class TileMetadata():
     def __init__(self, filename):

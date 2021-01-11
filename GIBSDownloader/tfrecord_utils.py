@@ -2,8 +2,8 @@ import os
 
 import tensorflow as tf
 
-from .coordinate_utils import Rectangle, Coordinate
-from .file_metadata import TileMetadata
+from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
+from GIBSDownloader.file_metadata import TileMetadata
 
 # Constants
 MAX_FILE_SIZE = 100_000_000 # 100 MB recommended TFRecord file size
