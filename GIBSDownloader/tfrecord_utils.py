@@ -1,4 +1,5 @@
 import os
+import glob
 
 import tensorflow as tf
 
@@ -48,17 +49,17 @@ class TFRecordUtils():
     
     @classmethod
     def write_to_tfrecords(cls, input_path, output_path, product):
-        for directory, subdirectories, files in os.walk(input_path):
-            count = 0
-            version = 0
-            while(count < len(files)):
-                total_file_size = 0
-                with tf.io.TFRecordWriter("{path}{name}_tf{v}.tfrecord".format(path=output_path, name=str(product), v=str(version))) as writer:
-                    while(total_file_size < MAX_FILE_SIZE and count < len(files)):    
-                        filename = files[count]
-                        metadata = TileMetadata(filename)
-                        total_file_size += os.path.getsize(directory + '/' + filename)
-                        tf_example = TFRecordUtils.image_example(directory + '/' + filename, metadata)
-                        writer.write(tf_example.SerializeToString())
-                        count += 1
-                version += 1
+        files = [f for f in glob.glob(input_path + "**/*.jpeg", recursive=True)]
+        count = 0
+        version = 0
+        while(count < len(files)):
+            total_file_size = 0
+            with tf.io.TFRecordWriter("{path}{name}_tf-{v}.tfrecord".format(path=output_path, name=str(product), v='%.3d' % (version))) as writer:
+                while(total_file_size < MAX_FILE_SIZE and count < len(files)):    
+                    filename = files[count]
+                    metadata = TileMetadata(filename)
+                    total_file_size += os.path.getsize(filename)
+                    tf_example = TFRecordUtils.image_example(filename, metadata)
+                    writer.write(tf_example.SerializeToString())
+                    count += 1
+            version += 1
