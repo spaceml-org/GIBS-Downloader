@@ -12,6 +12,7 @@ from tqdm import tqdm
 from GIBSDownloader.tile import Tile
 from GIBSDownloader.handling import Handling
 from GIBSDownloader.file_metadata import TiffMetadata
+from GIBSDownloader.coordinate_utils import Coordinate, Rectangle
 
 class TileUtils():
     @classmethod
@@ -21,10 +22,10 @@ class TileUtils():
         bl_x = (x + tile.width) * x_size + x_min
         bl_y = y * y_size + y_min
         filename = "{d}_{by},{bx},{ty},{tx}".format(d=date, ty=str(f'{round(bl_y, 4):08}'), tx=str(f'{round(bl_x, 4):09}'), by=str(f'{round(tr_y, 4):08}'), bx=str(f'{round(tr_x, 4):09}'))
-        return filename
+        return filename, Rectangle(Coordinate((bl_y, bl_x)), Coordinate((tr_y, tr_x)))
 
     @classmethod
-    def img_to_tiles(cls, tiff_path, tile, output_path):
+    def img_to_tiles(cls, tiff_path, tile, tile_date_path):
         metadata = TiffMetadata(tiff_path)
 
         # Open GeoTiff in gdal in order to get coordinate information
@@ -49,6 +50,7 @@ class TileUtils():
         x = 0 
         done_x = False
 
+        # Check for valid tiling
         if (tile.width > WIDTH or tile.height > HEIGHT):
             raise argparse.ArgumentTypeError("Tiling dimensions greater than image dimensions")
 
@@ -75,16 +77,21 @@ class TileUtils():
                         continue
                     if tile.handling == Handling.complete_tiles_shift:
                         y = HEIGHT - tile.height  
-                        
-                output_filename = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
 
+                # Find which MODIS grid location the current tile fits into
+                output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
+                output_path = tile_date_path + region.lat_lon_to_modis() + '/'
+                if not os.path.exists(output_path):
+                    os.mkdir(output_path)
+
+                # Tiling past boundaries 
                 if tile.handling == Handling.include_incomplete_tiles and (done_x or done_y):
                     incomplete_tile = img_arr[y:min(y + tile.height, HEIGHT), x:min(x + tile.width, WIDTH)]
                     empty_array = np.zeros((tile.height, tile.height, 3), dtype=np.uint8)
                     empty_array[0:incomplete_tile.shape[0], 0:incomplete_tile.shape[1]] = incomplete_tile
                     incomplete_img = Image.fromarray(empty_array)
                     incomplete_img.save(output_path + output_filename + ".jpeg")
-                else: 
+                else: # Tiling within boundaries
                     tile_array = img_arr[y:y+tile.height, x:x+tile.width]
                     tile_img = Image.fromarray(tile_array)
                     tile_img.save(output_path + output_filename + ".jpeg")

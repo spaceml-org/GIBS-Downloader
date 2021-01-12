@@ -17,6 +17,7 @@ from GIBSDownloader.product import Product
 from GIBSDownloader.tfrecord_utils import TFRecordUtils
 from GIBSDownloader.tile_utils import TileUtils
 from GIBSDownloader.tiff_downloader import TiffDownloader
+from GIBSDownloader.file_metadata import TiffMetadata
 
 def generate_download_path(start_date, end_date, bl_coords, output, product):
     base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=str(product), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
@@ -42,8 +43,12 @@ def tile_originals(tile_res_path, originals_path, tile, logging):
             for directory, subdirectory, files in os.walk(originals_path):
                 for count, filename in enumerate(files):
                     tiff_path = os.path.join(directory, filename)
+                    metadata = TiffMetadata(tiff_path)
+                    tile_date_path = tile_res_path + metadata.date + '/'
+                    if not os.path.exists(tile_date_path):
+                        os.mkdir(tile_date_path)
                     print("Tiling {} of {} images".format(count+1, len(files)))
-                    TileUtils.img_to_tiles(tiff_path, tile, tile_res_path)
+                    TileUtils.img_to_tiles(tiff_path, tile, tile_date_path)
     else:
         print("The specified tiles for these images have already been generated")
 

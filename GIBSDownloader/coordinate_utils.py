@@ -1,4 +1,9 @@
+import math
+
 import numpy as np
+import pyproj
+from pyproj import Proj, Transformer
+
 
 # stores coordinate information 
 class Coordinate():
@@ -39,3 +44,24 @@ class Rectangle():
         height = int((self.tr_coords.y - self.bl_coords.y) * KM_PER_DEG_AT_EQ / resolution)
         print(width, height)
         return (width, height)
+    
+    # Finds the corresponding MODIS Grid tile from the bottom left coordinates
+    # Taken from #https://gis.stackexchange.com/questions/265400/getting-tile-number-of-sinusoidal-modis-product-from-lat-long 
+    # All credit to user @renatoc
+    def lat_lon_to_modis(self):
+        # Constants for MODIS grid tile conversion
+        CELLS = 2400
+        VERTICAL_TILES = 18
+        HORIZONTAL_TILES = 36
+        EARTH_RADIUS = 6371007.181
+        EARTH_WIDTH = 2 * math.pi * EARTH_RADIUS
+        TILE_WIDTH = EARTH_WIDTH / HORIZONTAL_TILES
+        TILE_HEIGHT = TILE_WIDTH
+        CELL_SIZE = TILE_WIDTH / CELLS
+        MODIS_GRID = Proj(f'+proj=sinu +R={EARTH_RADIUS} +nadgrids=@null +wktext')
+        
+        x, y = MODIS_GRID(self.bl_coords.x, self.bl_coords.y)
+        h = (EARTH_WIDTH * .5 + x) / TILE_WIDTH
+        v = -(EARTH_WIDTH * .25 + y - (VERTICAL_TILES - 0) * TILE_HEIGHT) / TILE_HEIGHT
+
+        return 'h{}v{}'.format(str(f'{int(h):02d}'), str(f'{int(v):02d}'))
