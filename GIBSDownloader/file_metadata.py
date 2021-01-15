@@ -1,12 +1,11 @@
 import os
 
-from .coordinate_utils import Rectangle
-from .product import Product
+from GIBSDownloader.coordinate_utils import Rectangle
+from GIBSDownloader.product import Product
 
 class TileMetadata():
-    def __init__(self, filename):
-        # 2020-09-15_038.1579_-121.3758_037.0042_-122.8529.jpeg
-        # 2020-09-15_038.1579,-121.3758,037.0042,-122.8529.jpeg
+    def __init__(self, tile_path):
+        filename = os.path.basename(tile_path)
         components = filename.split('_')
         date_str = components[0] # "2020-09-15"
         region_str = os.path.splitext(components[1])[0] # "038.1579,-121.3758,037.0042,-122.8529"
