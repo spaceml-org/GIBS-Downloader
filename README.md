@@ -17,7 +17,7 @@ There are four required positional arguments which are as follows:
 
 ### Optional Parameters
 As well as the required positional arguments, the GIBSDownloader also offers some optional parameters for increased customizability.  
-* `--tile`: when set to true, each downloaded image will be tiled, and the tiles will be outputted as jpegs.  
+* `--tile`: when set to true, each downloaded image will be tiled, and the tiles will be outputted as jpegs. Note that the tiles will be sorted into appropriate folders based on their date and location on the [MODIS Sinusoidal Tile Grid](https://modis-land.gsfc.nasa.gov/MODLAND_grid.html). The location is determined by the coordinates of the bottom left corner of the tile.
 * `--tile-width`: specifies the width of each tile (defaults to 512 px).  
 * `--tile-height`: specifies the height of each tile (defaults to 512 px).  
 * `--tile-overlap`: determines the overlap between consecutive tiles while tiling (defaults to 0.5).  
@@ -49,7 +49,9 @@ product_lower-lat_left-lon_start-date_end-date/
            |> product_date.tif
       |> tiled_images/
            |> width_height_overlap/
-                |> date_coordinates.jpeg
+                |> date/
+                     |> MODIS_grid_tile/
+                          |> date_coordinates.jpeg
       |> tfrecords
            |> width_height_overlap/
                 |> product_tf.tfrecord
