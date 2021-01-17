@@ -22,7 +22,7 @@ Keras-Preprocessing==1.1.2
 kiwisolver==1.3.1
 Markdown==3.3.3
 matplotlib==3.3.3
-numpy
+numpy==1.19.5
 oauthlib==3.1.0
 opt-einsum==3.3.0
 pandas==1.1.5
@@ -34,7 +34,6 @@ pyparsing==2.4.7
 pyproj==3.0.0.post1
 python-dateutil==2.8.1
 pytz==2020.5
-rasterio==1.1.8
 requests==2.25.1
 requests-oauthlib==1.3.0
 rsa==4.6

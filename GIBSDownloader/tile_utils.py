@@ -3,7 +3,6 @@ import os
 import math
 
 import numpy as np
-import rasterio
 from matplotlib import pyplot as plt
 from osgeo import gdal
 from PIL import Image
@@ -42,9 +41,8 @@ class TileUtils():
         y_size = gt[5]
 
         # Open GeoTiff as numpy array in order to tile from the array
-        src = rasterio.open(tiff_path)
-        arr = src.read()
-        img_arr = np.dstack(arr)
+        src = Image.open(tiff_path)
+        img_arr = np.array(src)
 
         x_step, y_step = int(tile.width * (1 - tile.overlap)), int(tile.height * (1 - tile.overlap))
         x = 0 
