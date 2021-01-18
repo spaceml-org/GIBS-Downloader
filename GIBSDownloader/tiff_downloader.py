@@ -17,7 +17,7 @@ class TiffDownloader():
 
         xml_filename = TiffDownloader.generate_xml(xml_path, product, date)
         filename = "{}{}_{}.tif".format(output, str(product), date)
-        command = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} {xml} {f}}".format(w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename)
+        command = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} {xml} {f}".format(w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename)
         
         os.system(command)
         return filename
