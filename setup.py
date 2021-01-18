@@ -9,7 +9,7 @@ long_description = '''Python wrapper package for NASA GIBS API \
 
 setup(
     name ='GIBSDownloader', 
-    version ='0.0.1', 
+    version ='1.0.0', 
     author ='Fernando Lisboa, Shivam Verma', 
     author_email ='0fernando.lisboa@gmail.com', 
     url ='https://github.com/spaceml-org/NASA-GIBS-Downloader', 
