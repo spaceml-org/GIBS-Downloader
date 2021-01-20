@@ -23,9 +23,10 @@ def generate_download_path(start_date, end_date, bl_coords, output, product):
     base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=str(product), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
     return os.path.join(output, base)
 
-def download_originals(download_path, originals_path, tiled_path, tfrecords_path, start_date, end_date, logging, region, product):
+def download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, start_date, end_date, logging, region, product):
     if not os.path.isdir(download_path):
         os.mkdir(download_path)
+        os.mkdir(xml_path)
         os.mkdir(originals_path)
         os.mkdir(tiled_path)
         os.mkdir(tfrecords_path)
@@ -33,7 +34,7 @@ def download_originals(download_path, originals_path, tiled_path, tfrecords_path
         for date in dates:
             if logging: 
                 print('Downloading:', date)
-            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), originals_path, product)
+            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), download_path, xml_path, originals_path, product)
     else:
         print("The specified region and set of dates has already been downloaded")
 
@@ -86,6 +87,7 @@ def main():
     parser.add_argument("--generate-tfrecords", default=False, type=bool, help="generate tfrecords for image tiles")
     parser.add_argument("--verbose", default=False, type=bool, help="log downloading process")
     parser.add_argument("--product", default=Product.viirs, type=Product, help="select the NASA imagery product", choices=list(Product))
+    parser.add_argument("--keep-xml", default=False, type=bool, help="keep the xml files generated to download images")
 
     # get the user input
     args = parser.parse_args()
@@ -98,6 +100,7 @@ def main():
     tiling = args.tile
     tile = Tile(args.tile_width, args.tile_height, args.tile_overlap, args.boundary_handling)
     product = args.product
+    keep_xml = args.keep_xml
 
     # get the latitude, longitude values from the user input
     bl_coords = Coordinate([float(i) for i in args.bottom_left_coords.replace(" ","").split(',')])
@@ -110,6 +113,7 @@ def main():
     
     # gets paths for downloads
     download_path = generate_download_path(start_date, end_date, bl_coords, output_path, product)
+    xml_path = download_path + '/xml_configs/'
     originals_path = download_path + '/original_images/'
     tiled_path = download_path + '/tiled_images/'
     tfrecords_path = download_path + '/tfrecords/'
@@ -117,7 +121,7 @@ def main():
     tile_res_path = os.path.join(tiled_path, resolution) + '/'
     tfrecords_res_path = os.path.join(tfrecords_path, resolution) + '/'
 
-    download_originals(download_path, originals_path, tiled_path, tfrecords_path, start_date, end_date, logging, region, product)
+    download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, start_date, end_date, logging, region, product)
 
     if tiling:
         tile_originals(tile_res_path, originals_path, tile, logging)
@@ -127,6 +131,9 @@ def main():
         
     if rm_originals:
         remove_originals(originals_path, logging)
+
+    if not keep_xml:
+        shutil.rmtree(xml_path)
 
 if __name__ == "__main__":
     main()

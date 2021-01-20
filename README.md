@@ -1,11 +1,16 @@
+<div align="center">
+
+<img src="images/earth_banner.png" >
+
 <p align="center">
-  <a href="http://spaceml.org/">Website</a> •
-  <a href="https://arxiv.org/abs/2012.10610">SpaceML</a>
+  <a href="https://arxiv.org/abs/2012.10610">SpaceML</a> •
+  <a href="http://spaceml.org/">Website</a>
 </p>
 
 
-[![Python Version](https://img.shields.io/badge/python-3.6%20|%203.7%20|%203.8-blue.svg)](https://www.python.org/)
-[![Pip Package](https://img.shields.io/badge/Pip%20Package-Coming%20Soon-0073b7.svg)](https://pypi.org/project/pip/)
+[![Python Version](https://img.shields.io/badge/Python-3.6%20|%203.7%20|%203.8-green.svg)](https://www.python.org/)
+![platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+![Version](https://img.shields.io/badge/Version-1.0.0-blue)
 
 </div>
 
@@ -42,15 +47,16 @@ As well as the required positional arguments, the GIBSDownloader also offers som
 * `--product`: selects which NASA imagery product to download from. There is currently support for two products:
     - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`
     - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
+* `--keep-xml`: when set to true, the xml files generated to download using GIBS are preserved (defaults to false).
 
 ### Example 
-Say we want to download images of the Bay Area in California from 15 September 2020 to 30 September 2020, while also tiling the downloaded images and writing to TFRecords.  
+Say we want to download MODIS images of the Bay Area in California from 15 September 2020 to 30 September 2020, while also tiling the downloaded images and writing to TFRecords.  
 \
 This can be done with the following command:  
-`gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --generate-tfrecords=true`.  
+`gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --generate-tfrecords=true --product=modis`.  
 \
 If we wanted specify the tile size and overlap, while also removing the original downloaded images, the command would be:  
-`gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0 --remove-originals=true --generate-tfrecords=true`  
+`gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0 --remove-originals=true --generate-tfrecords=true --product=modis`  
 \
 These will create the following directory structure: 
 
@@ -67,9 +73,18 @@ product_lower-lat_left-lon_start-date_end-date/
            |> width_height_overlap/
                 |> product_tf.tfrecord
 ```
+The following two images were included in the range of dates downloaded with the above commands
+
+<div align="center">
+<img src="images/california_fire1.jpeg" >
+</div>
+Clearly visible are the wildfires that plagued California between September and October of 2020.
+<div align="center">
+<img src="images/california_fire2.jpeg" >
+</div>
 
 ## FAQ
-#### How can I find the coordinates of the bottom left the top right corners of the rectangular region that I want to download?
+#### How can I find the coordinates of the bottom left and top right corners of the rectangular region that I want to download?
 On [Google Maps](https://www.google.com/maps), you can right click at any point on the map, and you will be able to copy that point's latitude and longitude. You can then right click on two points that would form the bottom left and top right corners of a rectangular region and copy those coordinates.
 
 #### What is tiling?
