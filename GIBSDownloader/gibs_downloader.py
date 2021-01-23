@@ -9,7 +9,6 @@ from GIBSDownloader.coordinate_utils import Coordinate, Rectangle
 from GIBSDownloader.tile import Tile
 from GIBSDownloader.handling import Handling
 from GIBSDownloader.product import Product
-from GIBSDownloader.tfrecord_utils import TFRecordUtils
 from GIBSDownloader.tile_utils import TileUtils
 from GIBSDownloader.tiff_downloader import TiffDownloader
 from GIBSDownloader.file_metadata import TiffMetadata
@@ -106,6 +105,10 @@ def main():
     if (bl_coords.x > tr_coords.x or bl_coords.y > tr_coords.y):
         raise argparse.ArgumentTypeError('Inputted coordinates are invalid: order should be (lower_latitude,left_longitude upper_latitude,right_longitude)')
     
+    # checks for tensorflow
+    if write_tfrecords: 
+        from GIBSDownloader.tfrecord_utils import TFRecordUtils
+
     # gets paths for downloads
     download_path = generate_download_path(start_date, end_date, bl_coords, output_path, product)
     xml_path = download_path + '/xml_configs/'
