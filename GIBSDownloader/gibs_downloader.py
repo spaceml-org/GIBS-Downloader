@@ -5,11 +5,6 @@ import shutil
 import argparse
 from argparse import ArgumentParser
 
-import numpy as np
-import pandas as pd
-import tensorflow as tf
-from osgeo import gdal
-
 from GIBSDownloader.coordinate_utils import Coordinate, Rectangle
 from GIBSDownloader.tile import Tile
 from GIBSDownloader.handling import Handling
@@ -30,7 +25,7 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
         os.mkdir(originals_path)
         os.mkdir(tiled_path)
         os.mkdir(tfrecords_path)
-        dates = pd.date_range(start=start_date, end=end_date)
+        dates = TiffDownloader.get_dates_range(start_date, end_date)
         for date in dates:
             if logging: 
                 print('Downloading:', date)

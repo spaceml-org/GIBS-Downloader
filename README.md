@@ -42,7 +42,7 @@ As well as the required positional arguments, the GIBSDownloader also offers som
     - `include-incomplete-tiles` includes the tiles which extend past the boundary and are thus missing data values for portions of the image
     - `discard-incomplete-tiles` simply removes the images which extend past the boundaries . 
 * `--generate-tfrecords`: when set to true, the tiles are used to generate 100 MB TFRecord files which contain the tiles as well as the coordinates of the bottom left and top right corner of each tile (defaults to false).    
-* `--remove-originals`: when set to true, the original downloaded images will be deleted and only the tiled images and TFRecords will be saved (defaults to false).  
+* `--remove-originals`: when set to true, the original downloaded images will be deleted and only the tiled images and TFRecords will be saved (defaults to false).  Note that this will require user installation of TensorFlow with `pip install tensorflow==2.4.0`
 * `--verbose`: when set to true, prints additional information about downloading process to console (defaults to false).
 * `--product`: selects which NASA imagery product to download from. There is currently support for two products:
     - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`

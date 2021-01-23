@@ -1,7 +1,12 @@
 import os
 import glob
 
-import tensorflow as tf
+try:
+    import tensorflow as tf
+except ImportError as e:
+    print("Install tensorflow with: pip install tensorflow==2.4.0")
+    raise(e)
+
 
 from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 from GIBSDownloader.file_metadata import TileMetadata

@@ -4,7 +4,6 @@ import numpy as np
 import pyproj
 from pyproj import Proj, Transformer
 
-
 # stores coordinate information 
 class Coordinate():
     def __init__(self, coords):
