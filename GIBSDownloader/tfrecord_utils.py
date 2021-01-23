@@ -4,7 +4,7 @@ import glob
 try:
     import tensorflow as tf
 except ImportError as e:
-    raise e("Missing TensorFlow. Install with: pip install tensorflow==2.4.0")
+    raise Exception("Missing TensorFlow. Install with: pip install tensorflow==2.4.0")
 
 from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 from GIBSDownloader.file_metadata import TileMetadata
