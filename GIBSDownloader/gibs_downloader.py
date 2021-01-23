@@ -128,7 +128,8 @@ def main():
         remove_originals(originals_path, logging)
 
     if not keep_xml:
-        shutil.rmtree(xml_path)
+        if os.path.exists(xml_path):
+            shutil.rmtree(xml_path)
 
 if __name__ == "__main__":
     main()
