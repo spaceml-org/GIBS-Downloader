@@ -15,7 +15,12 @@
 </div>
 
 # GIBSDownloader
-GIBSDownloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following products: `MODIS_Terra_CorrectedReflectance_TrueColor`, `VIIRS_SNPP_CorrectedReflectance_TrueColor`. You can read more about these products [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products). 
+GIBSDownloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following products: `MODIS_Terra_CorrectedReflectance_TrueColor`, `VIIRS_SNPP_CorrectedReflectance_TrueColor`. You can read more about these products [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products).  
+\
+You can use GIBSDownloader to download images of a region as follows:   
+`gdl 2021-01-01 2021-01-15 "37.003277, -124.328539" "40.353784, -120.253964"`  
+\
+Read further for more explanation on how to get the most out of GIBSDownloader.
 
 <img src="images/3-step-guide-gibsdownloader.jpg" >
 
