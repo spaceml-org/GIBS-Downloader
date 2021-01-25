@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="images/earth_banner.png" >
+<img src="images/gibs-downloader-header.jpg" >
 
 <p align="center">
   <a href="https://arxiv.org/abs/2012.10610">SpaceML</a> •
@@ -15,24 +15,33 @@
 </div>
 
 # GIBSDownloader
-GIBSDownloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following products: `MODIS_Terra_CorrectedReflectance_TrueColor`, `VIIRS_SNPP_CorrectedReflectance_TrueColor`. You can read more about these products [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products).  
+GIBSDownloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following products: `MODIS_Terra_CorrectedReflectance_TrueColor`, `VIIRS_SNPP_CorrectedReflectance_TrueColor`. You can read more about these products [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products). 
+
+<img src="images/3-step-guide-gibsdownloader.jpg" >
 
 ## Dependencies 
 This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBSDownloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is create a virtual environment in which you will use the GIBSDownloader, and then install GDAL with conda as follows: ``conda install -c conda-forge gdal=3.2.0``.
 
-## Installation
+
+## Installation 
 Once GDAL is installed on your machine, the GIBSDownloader package can be installed using: `pip install git+https://github.com/spaceml-org/NASA-GIBS-Downloader.git#egg=GIBSDownloader`  
 Once installed, the packaged can be referenced as `gdl` on the command-line.  
 \
 **NOTE:** this package must be installed in the same virtual environment in which you installed GDAL.
 
+<img src="images/step-1-gibsdownloader.jpg" >
+
 ## Usage
+
+<img src="images/step-2-gibsdownloader.jpg" >
+
 ### Positional Arguments
 There are four required positional arguments which are as follows:
 `start-date`, `end-date`, `bottom-left-coords`, `top-right-coords`. The first two arguments establish a range of dates to download the images, and the last two arguments form the bottom left and top right coordinates of the desired rectangular region to be downloaded. Note that the bottom left and top right coordinate pairs should be entered as `"latitude, longitude"`, in quotations.
 
 ### Optional Parameters
 As well as the required positional arguments, the GIBSDownloader also offers some optional parameters for increased customizability.  
+* `--output-path`: specify the path to where the images should be downloaded (defaults to the current working directory)
 * `--tile`: when set to true, each downloaded image will be tiled, and the tiles will be outputted as jpegs. Note that the tiles will be sorted into appropriate folders based on their date and location on the [MODIS Sinusoidal Tile Grid](https://modis-land.gsfc.nasa.gov/MODLAND_grid.html). The location is determined by the coordinates of the bottom left corner of the tile.
 * `--tile-width`: specifies the width of each tile (defaults to 512 px).  
 * `--tile-height`: specifies the height of each tile (defaults to 512 px).  
@@ -48,6 +57,8 @@ As well as the required positional arguments, the GIBSDownloader also offers som
     - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`
     - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
 * `--keep-xml`: when set to true, the xml files generated to download using GIBS are preserved (defaults to false).
+
+<img src='images/step-3-gibsdownloader.jpg'>
 
 ### Example 
 Say we want to download MODIS images of the Bay Area in California from 15 September 2020 to 30 September 2020, while also tiling the downloaded images and writing to TFRecords.  
