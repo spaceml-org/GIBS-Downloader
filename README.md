@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="images/gibs-downloader-header.jpg" >
+![GIBSDownloader header image](images/gibs-downloader-header.jpg)
 
 <p align="center">
   <a href="https://arxiv.org/abs/2012.10610">SpaceML</a> •
@@ -17,12 +17,12 @@
 # GIBSDownloader
 GIBSDownloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following products: `MODIS_Terra_CorrectedReflectance_TrueColor`, `VIIRS_SNPP_CorrectedReflectance_TrueColor`. You can read more about these products [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products).  
 \
-You can use GIBSDownloader to download images of a region as follows:   
-`gdl 2021-01-01 2021-01-15 "37.003277, -124.328539" "40.353784, -120.253964"`  
+E.g. you can download images of the first week of the 2020 California wildfires as follows:  
+`gdl 2020-08-16 2020-08-22 "37.003277, -124.328539" "40.353784, -120.253964"`   
 \
 Read further for more explanation on how to get the most out of GIBSDownloader.
 
-<img src="images/3-step-guide-gibsdownloader.jpg" >
+![GIBSDownloader three step installation guide](images/3-step-guide-gibsdownloader.jpg)
 
 ## Dependencies 
 This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBSDownloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is create a virtual environment in which you will use the GIBSDownloader, and then install GDAL with conda as follows: ``conda install -c conda-forge gdal=3.2.0``.
@@ -34,11 +34,11 @@ Once installed, the packaged can be referenced as `gdl` on the command-line.
 \
 **NOTE:** this package must be installed in the same virtual environment in which you installed GDAL.
 
-<img src="images/step-1-gibsdownloader.jpg" >
+![GIBSDownloader installation guide](images/step-1-gibsdownloader.jpg)
 
 ## Usage
 
-<img src="images/step-2-gibsdownloader.jpg" >
+![GIBSDownloader usage guide](images/step-2-gibsdownloader.jpg)
 
 ### Positional Arguments
 There are four required positional arguments which are as follows:
@@ -63,7 +63,7 @@ As well as the required positional arguments, the GIBSDownloader also offers som
     - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
 * `--keep-xml`: when set to true, the xml files generated to download using GIBS are preserved (defaults to false).
 
-<img src='images/step-3-gibsdownloader.jpg'>
+![GIBSDownloader image retrieval guide](images/step-3-gibsdownloader.jpg)
 
 ### Example 
 Say we want to download MODIS images of the Bay Area in California from 15 September 2020 to 30 September 2020, while also tiling the downloaded images and writing to TFRecords.  
@@ -91,13 +91,13 @@ product_lower-lat_left-lon_start-date_end-date/
 ```
 The following two images were included in the range of dates downloaded with the above commands
 
-<div align="center">
-<img src="images/california_fire1.jpeg" >
-</div>
-Clearly visible are the wildfires that plagued California between September and October of 2020.
-<div align="center">
-<img src="images/california_fire2.jpeg" >
-</div>
+
+![California wildfires clear image](images/california_fire1.jpeg)
+
+Clearly visible are the wildfires that plagued California between September and October of 2020.  
+
+![California wildfires smokey image](images/california_fire2.jpeg)
+
 
 ## FAQ
 #### How can I find the coordinates of the bottom left and top right corners of the rectangular region that I want to download?
