@@ -1,4 +1,6 @@
 import os
+from datetime import date, timedelta
+
 from GIBSDownloader.product import Product
 from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 
@@ -21,6 +23,17 @@ class TiffDownloader():
         
         os.system(command)
         return filename
+
+    @classmethod
+    def get_dates_range(cls, start_date, end_date):
+        start_components = start_date.split('-')
+        end_components = end_date.split('-')
+
+        d1 = date(int(start_components[0]), int(start_components[1]), int(start_components[2]))
+        d2 = date(int(end_components[0]), int(end_components[1]), int(end_components[2]))
+
+        dates = [d1 + timedelta(days=x) for x in range((d2 - d1).days + 1)]
+        return dates
     
     @classmethod
     def generate_xml(cls, xml_path, product, date):

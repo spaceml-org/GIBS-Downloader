@@ -5,16 +5,10 @@ import shutil
 import argparse
 from argparse import ArgumentParser
 
-import numpy as np
-import pandas as pd
-import tensorflow as tf
-from osgeo import gdal
-
 from GIBSDownloader.coordinate_utils import Coordinate, Rectangle
 from GIBSDownloader.tile import Tile
 from GIBSDownloader.handling import Handling
 from GIBSDownloader.product import Product
-from GIBSDownloader.tfrecord_utils import TFRecordUtils
 from GIBSDownloader.tile_utils import TileUtils
 from GIBSDownloader.tiff_downloader import TiffDownloader
 from GIBSDownloader.file_metadata import TiffMetadata
@@ -30,7 +24,7 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
         os.mkdir(originals_path)
         os.mkdir(tiled_path)
         os.mkdir(tfrecords_path)
-        dates = pd.date_range(start=start_date, end=end_date)
+        dates = TiffDownloader.get_dates_range(start_date, end_date)
         for date in dates:
             if logging: 
                 print('Downloading:', date)
@@ -54,6 +48,7 @@ def tile_originals(tile_res_path, originals_path, tile, logging):
         print("The specified tiles for these images have already been generated")
 
 def tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, product):
+    from GIBSDownloader.tfrecord_utils import TFRecordUtils
     if os.path.isdir(tile_res_path):
             if not os.path.isdir(tfrecords_res_path):
                 os.mkdir(tfrecords_res_path)
@@ -110,7 +105,7 @@ def main():
     # check if inputted coordinates are valid
     if (bl_coords.x > tr_coords.x or bl_coords.y > tr_coords.y):
         raise argparse.ArgumentTypeError('Inputted coordinates are invalid: order should be (lower_latitude,left_longitude upper_latitude,right_longitude)')
-    
+
     # gets paths for downloads
     download_path = generate_download_path(start_date, end_date, bl_coords, output_path, product)
     xml_path = download_path + '/xml_configs/'
@@ -133,7 +128,8 @@ def main():
         remove_originals(originals_path, logging)
 
     if not keep_xml:
-        shutil.rmtree(xml_path)
+        if os.path.exists(xml_path):
+            shutil.rmtree(xml_path)
 
 if __name__ == "__main__":
     main()
