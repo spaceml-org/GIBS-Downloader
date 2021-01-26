@@ -3,8 +3,8 @@
 ![GIBSDownloader header image](images/gibs-downloader-header.jpg)
 
 <p align="center">
-  <a href="https://arxiv.org/abs/2012.10610">SpaceML</a> •
-  <a href="http://spaceml.org/">Website</a>
+  Published by <a href="http://spaceml.org/">SpaceML</a> •
+  <a href="https://arxiv.org/abs/2012.10610">About SpaceML</a>
 </p>
 
 
