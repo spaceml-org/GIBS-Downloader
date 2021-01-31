@@ -99,9 +99,9 @@ class TileUtils():
 
         # Calculate the number of tiles to be generated
         if tile.handling == Handling.discard_incomplete_tiles:
-            num_iterations = (WIDTH // tile.width) * (HEIGHT // tile.height)
+            num_iterations = (WIDTH - tile.width * tile.overlap) // (tile.width * (1 -  tile.overlap)) * (HEIGHT - tile.height * tile.overlap) // (tile.height * (1 -  tile.overlap))
         else:
-            num_iterations = math.ceil(WIDTH / tile.width) * math.ceil(HEIGHT / tile.height)
+            num_iterations = math.ceil((WIDTH - tile.width * tile.overlap) / (tile.width * (1 -  tile.overlap))) * math.ceil((HEIGHT - tile.height * tile.overlap) / (tile.height * (1 -  tile.overlap)))
         pbar = tqdm(total=num_iterations) # Create a progress bar for tiling one image
         
         while(x < WIDTH and not done_x):
