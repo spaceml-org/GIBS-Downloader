@@ -35,7 +35,7 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
         for date in dates:
             if logging: 
                 print('Downloading:', date)
-            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), download_path, xml_path, originals_path, product)
+            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, originals_path, product)
     else:
         print("The specified region and set of dates has already been downloaded")
 
