@@ -14,7 +14,7 @@ from GIBSDownloader.handling import Handling
 from GIBSDownloader.file_metadata import TiffMetadata
 from GIBSDownloader.coordinate_utils import Coordinate, Rectangle
 
-#warnings.simplefilter('ignore', Image.DecompressionBombWarning)
+warnings.simplefilter('ignore', Image.DecompressionBombWarning)
 
 MAX_INTERMEDIATE_LENGTH = int(math.sqrt(2 * Image.MAX_IMAGE_PIXELS)) # Maximum width and height for an intermediate tile to guarantee num pixels less than PIL's max
 
@@ -28,12 +28,8 @@ class TileUtils():
         filename = "{d}_{by},{bx},{ty},{tx}".format(d=date, ty=str(f'{round(bl_y, 4):08}'), tx=str(f'{round(bl_x, 4):09}'), by=str(f'{round(tr_y, 4):08}'), bx=str(f'{round(tr_x, 4):09}'))
         return filename, Rectangle(Coordinate((bl_y, bl_x)), Coordinate((tr_y, tr_x)))
 
-    # Steps: calculate how to split the image using width and height
     @classmethod
     def generate_intermediate_images(cls, tiff_path, tile, width, height, date):
-        # need to guarantee at least one tile in last image
-        # tile: width_current + width_length
-        # width_current = width_current + width_length - tile.overlap * tile.width
         output_dir = os.path.join(os.path.dirname(tiff_path), 'inter_{}'.format(date))
         os.mkdir(output_dir)
 
