@@ -41,7 +41,6 @@ class Rectangle():
         km_per_deg_at_lat = KM_PER_DEG_AT_EQ * np.cos(np.pi * np.mean([self.bl_coords.y, self.tr_coords.y]) / 180.)
         width = int((self.tr_coords.x - self.bl_coords.x) * km_per_deg_at_lat / resolution)
         height = int((self.tr_coords.y - self.bl_coords.y) * KM_PER_DEG_AT_EQ / resolution)
-        print(width, height)
         return (width, height)
     
     # Finds the corresponding MODIS Grid tile from the bottom left coordinates
