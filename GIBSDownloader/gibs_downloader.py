@@ -41,7 +41,7 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region):
             width, height = region.calculate_width_height(.25)
             if width * height > 2 * Image.MAX_IMAGE_PIXELS:
                 ultra_large = True
-            files = os.listdir(originals_path)
+            files = [f for f in os.listdir(originals_path) if f.endswith('tif')]
             files.sort() # tile in chronological order
             for count, filename in enumerate(files):
                 tiff_path = os.path.join(originals_path, filename) # path to GeoTiff file
