@@ -84,9 +84,11 @@ def remove_originals(originals_path, logging):
 
 def generate_video(originals_path, region, dates, video_path, xml_path, product):
     if not os.path.isdir(video_path):
+        print("Generating video...", end="")
         os.mkdir(video_path)
         Animator.format_images(originals_path, region, dates, video_path, xml_path, product)
         Animator.create_video(video_path)
+        print("done!")
     else:
         print("The images have already been animated")
 
