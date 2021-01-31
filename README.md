@@ -62,6 +62,7 @@ As well as the required positional arguments, the GIBSDownloader also offers som
     - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`
     - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
 * `--keep-xml`: when set to true, the xml files generated to download using GIBS are preserved (defaults to false).
+* `--animate`: when set to true, a video will be generated from the images downloaded (defaults to false).
 
 ![GIBSDownloader image retrieval guide](images/step-3-gibsdownloader.jpg)
 
@@ -113,7 +114,6 @@ If you initially download a region for a range of dates without electing to tile
 To download the entire Earth, the coordinates you need to enter are: `"-90, -180" "90, 180"`. The GeoTiff file for one day of the entire Earth is approximately 38 GB.
 
 ### Upcoming Features
-* `--animate`: Users will be able to directly create videos from the downloaded imagery
 * Logging will be updated to use Python's logging library in order to provide the user with more information about the downloading process
 
 ## Citation
