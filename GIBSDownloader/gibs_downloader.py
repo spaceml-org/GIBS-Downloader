@@ -16,6 +16,11 @@ from GIBSDownloader.tiff_downloader import TiffDownloader
 from GIBSDownloader.file_metadata import TiffMetadata
 from GIBSDownloader.animator import Animator
 
+
+# TODO
+# Fix the paths for video images download 
+# implement animate feature 
+
 def generate_download_path(start_date, end_date, bl_coords, output, product):
     base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=str(product), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
     return os.path.join(output, base)
@@ -82,8 +87,12 @@ def remove_originals(originals_path, logging):
     shutil.rmtree(originals_path)
     os.mkdir(originals_path)
 
-def generate_video(originals_path):
-    pass
+def generate_video(originals_path, region, dates, video_path, xml_path, product):
+    if not os.path.isdir(video_path):
+        Animator.format_images(originals_path, region, dates, video_path, xml_path, product)
+        Animator.create_video(video_path)
+    else:
+        print("The images have already been animated")
 
 def main():
     parser = ArgumentParser()
@@ -133,6 +142,7 @@ def main():
     originals_path = download_path + '/original_images/'
     tiled_path = download_path + '/tiled_images/'
     tfrecords_path = download_path + '/tfrecords/'
+    video_path = download_path + '/video/'
     resolution = "{t_width}x{t_height}_{t_overlap}".format(t_width=str(tile.width), t_height=str(tile.height), t_overlap=str(tile.overlap))
     tile_res_path = os.path.join(tiled_path, resolution) + '/'
     tfrecords_res_path = os.path.join(tfrecords_path, resolution) + '/'
@@ -149,7 +159,7 @@ def main():
         tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, product)
         
     if animate:
-        generate_video(originals_path)
+        generate_video(originals_path, region, dates, video_path, xml_path, product)
     
     if rm_originals:
         remove_originals(originals_path, logging)

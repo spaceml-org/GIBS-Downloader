@@ -6,7 +6,7 @@ from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 
 class TiffDownloader():
     @classmethod
-    def download_area_tiff(cls, region, date, download_path, xml_path, output, product, width=None, height=None, out_frmt="GTiff"):
+    def download_area_tiff(cls, region, date, xml_path, output, product, width=None, height=None, out_frmt="GTiff"):
         """
         region: rectangular region to be downloaded
         date: YYYY-MM-DD
