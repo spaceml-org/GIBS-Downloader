@@ -97,9 +97,9 @@ def generate_video(originals_path, region, dates, video_path, xml_path, product)
         os.mkdir(video_path)
         Animator.format_images(originals_path, region, dates, video_path, xml_path, product)
         Animator.create_video(video_path)
-        print("done!")
-    else:
         print("Video generation has finished!")
+    else:
+        print("The video has already been generated")
 
 def main():
     parser = ArgumentParser()
