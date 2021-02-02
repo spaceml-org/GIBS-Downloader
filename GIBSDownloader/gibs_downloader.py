@@ -27,41 +27,46 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
         os.mkdir(originals_path)
         os.mkdir(tiled_path)
         os.mkdir(tfrecords_path)
-        for date in dates:
-            if logging: 
+    
+    for date in dates:
+        tiff_output = TiffDownloader.generate_download_filename(originals_path, product, date)
+        if not os.path.isfile(tiff_output + '.tif'):
+            if logging:
                 print('Downloading:', date)
-            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, originals_path, product)
-    else:
-        print("The specified region and set of dates has already been downloaded")
+            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, product)
+    print("The specified region and set of dates have been downloaded")
 
 def tile_originals(tile_res_path, originals_path, tile, logging, region):
     if not os.path.isdir(tile_res_path):
-            os.mkdir(tile_res_path)
-            ultra_large = False
-            width, height = region.calculate_width_height(.25)
-            if width * height > 2 * Image.MAX_IMAGE_PIXELS:
-                ultra_large = True
-            files = [f for f in os.listdir(originals_path) if f.endswith('tif')]
-            files.sort() # tile in chronological order
-            for count, filename in enumerate(files):
-                tiff_path = os.path.join(originals_path, filename) # path to GeoTiff file
-                metadata = TiffMetadata(tiff_path)
-                tile_date_path = tile_res_path + metadata.date + '/' # path to tiles for specific date
-                if not os.path.exists(tile_date_path):
-                    os.mkdir(tile_date_path)
-                print("Tiling day {} of {}".format(count + 1, len(files)))
-                # if ultra large, then split into intermediate tiles and tile the intermediate tiles
-                if ultra_large:
-                    intermediate_dir = TileUtils.generate_intermediate_images(tiff_path, tile, width, height, metadata.date)
-                    for intermediate_tiff in os.listdir(intermediate_dir):
-                        if intermediate_tiff.endswith("tif"):
-                            intermediate_tiff_path = os.path.join(intermediate_dir, intermediate_tiff)
-                            TileUtils.img_to_tiles(tiff_path, tile, tile_date_path, inter_path=intermediate_tiff_path)
-                    shutil.rmtree(intermediate_dir)
-                else:
-                    TileUtils.img_to_tiles(tiff_path, tile, tile_date_path)
-    else:
-        print("The specified tiles for these images have already been generated")
+        os.mkdir(tile_res_path)
+
+    ultra_large = False
+    width, height = region.calculate_width_height(.25)
+    if width * height > 2 * Image.MAX_IMAGE_PIXELS:
+        ultra_large = True
+
+    files = [f for f in os.listdir(originals_path) if f.endswith('tif')]
+    files.sort() # tile in chronological order
+    for count, filename in enumerate(files):
+        tiff_path = os.path.join(originals_path, filename) # path to GeoTiff file
+        metadata = TiffMetadata(tiff_path)
+        tile_date_path = tile_res_path + metadata.date + '/' # path to tiles for specific date
+        if not os.path.exists(tile_date_path):
+            os.mkdir(tile_date_path)
+            print("Tiling day {} of {}".format(count + 1, len(files)))
+            # if ultra large, then split into intermediate tiles and tile the intermediate tiles
+            if ultra_large:
+                intermediate_dir = TileUtils.generate_intermediate_images(tiff_path, tile, width, height, metadata.date)
+                for intermediate_tiff in os.listdir(intermediate_dir):
+                    if intermediate_tiff.endswith("tif"):
+                        intermediate_tiff_path = os.path.join(intermediate_dir, intermediate_tiff)
+                        TileUtils.img_to_tiles(tiff_path, tile, tile_date_path, inter_path=intermediate_tiff_path)
+                shutil.rmtree(intermediate_dir)
+            else:
+                TileUtils.img_to_tiles(tiff_path, tile, tile_date_path)
+        else: 
+            print("Tiles for day {} have already been generated. Moving on to the next day".format(count + 1))
+    print("The specified tiles have been generated")
 
 def tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, product):
     from GIBSDownloader.tfrecord_utils import TFRecordUtils
@@ -84,13 +89,13 @@ def remove_originals(originals_path, logging):
 
 def generate_video(originals_path, region, dates, video_path, xml_path, product):
     if not os.path.isdir(video_path):
-        print("Generating video...", end="")
+        print("Generating video...")
         os.mkdir(video_path)
         Animator.format_images(originals_path, region, dates, video_path, xml_path, product)
         Animator.create_video(video_path)
         print("done!")
     else:
-        print("The images have already been animated")
+        print("Video generation has finished!")
 
 def main():
     parser = ArgumentParser()

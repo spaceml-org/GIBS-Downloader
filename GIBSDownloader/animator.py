@@ -18,7 +18,8 @@ class Animator():
             resized_height = 1080
             resized_width = resized_height * ratio
             for date in dates:
-                TiffDownloader.download_area_tiff(region, date, xml_path, video_path, product, width=resized_width, height=resized_height, out_frmt="JPEG")
+                frame_name = TiffDownloader.generate_download_filename(video_path, product, date)
+                TiffDownloader.download_area_tiff(region, date, xml_path, frame_name, product, width=resized_width, height=resized_height, out_frmt="JPEG")
         else:
             images = [img for img in os.listdir(tif_path) if img.endswith(".tif")]
             for image in images:
