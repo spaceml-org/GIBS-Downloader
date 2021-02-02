@@ -23,11 +23,13 @@ def generate_download_path(start_date, end_date, bl_coords, output, product):
 def download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, product):
     if not os.path.isdir(download_path):
         os.mkdir(download_path)
-        os.mkdir(xml_path)
         os.mkdir(originals_path)
         os.mkdir(tiled_path)
         os.mkdir(tfrecords_path)
-    
+
+    if not os.path.isdir(xml_path):
+        os.mkdir(xml_path)
+
     for date in dates:
         tiff_output = TiffDownloader.generate_download_filename(originals_path, product, date)
         if not os.path.isfile(tiff_output + '.tif'):
@@ -89,6 +91,8 @@ def remove_originals(originals_path, logging):
 
 def generate_video(originals_path, region, dates, video_path, xml_path, product):
     if not os.path.isdir(video_path):
+        if not os.path.isdir(xml_path):
+            os.mkdir(xml_path)
         print("Generating video...")
         os.mkdir(video_path)
         Animator.format_images(originals_path, region, dates, video_path, xml_path, product)
@@ -113,7 +117,7 @@ def main():
     parser.add_argument("--generate-tfrecords", default=False, type=bool, help="generate tfrecords for image tiles")
     parser.add_argument("--verbose", default=False, type=bool, help="log downloading process")
     parser.add_argument("--product", default=Product.viirs, type=Product, help="select the NASA imagery product", choices=list(Product))
-    parser.add_argument("--remove-xml", default=False, type=bool, help="remove the xml files generated to download images")
+    parser.add_argument("--keep-xml", default=False, type=bool, help="preserve the xml files generated to download images")
     parser.add_argument("--animate", default=False, type=bool, help="Generate a timelapse video of the downloaded region")
 
     # get the user input
@@ -127,7 +131,7 @@ def main():
     tiling = args.tile
     tile = Tile(args.tile_width, args.tile_height, args.tile_overlap, args.boundary_handling)
     product = args.product
-    remove_xml = args.keep_xml
+    keep_xml = args.keep_xml
     animate = args.animate
 
     # get the latitude, longitude values from the user input
@@ -167,7 +171,7 @@ def main():
     if rm_originals:
         remove_originals(originals_path, logging)
 
-    if remove_xml:
+    if keep_xml:
         if os.path.exists(xml_path):
             shutil.rmtree(xml_path)
 
