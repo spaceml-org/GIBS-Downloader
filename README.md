@@ -25,14 +25,14 @@ Read further for more explanation on how to get the most out of GIBSDownloader.
 ![GIBSDownloader three step installation guide](images/3-step-guide-gibsdownloader.jpg)
 
 ## Dependencies 
-This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBSDownloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is create a virtual environment in which you will use the GIBSDownloader, and then install GDAL with conda as follows: ``conda install -c conda-forge gdal=3.2.0``.
+This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBSDownloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is with conda. After installing conda from either [Ananconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html), create a conda environment in which you will use the GIBSDownloader, and then install GDAL as follows: ``conda install -c conda-forge gdal=3.2.0``.
 
 
 ## Installation 
 Once GDAL is installed on your machine, the GIBSDownloader package can be installed using: `pip install git+https://github.com/spaceml-org/NASA-GIBS-Downloader.git#egg=GIBSDownloader`  
 Once installed, the packaged can be referenced as `gdl` on the command-line.  
 \
-**NOTE:** this package must be installed in the same virtual environment in which you installed GDAL.
+**NOTE:** this package must be installed in the same environment in which you installed GDAL.
 
 ![GIBSDownloader installation guide](images/step-1-gibsdownloader.jpg)
 
@@ -62,6 +62,7 @@ As well as the required positional arguments, the GIBSDownloader also offers som
     - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`
     - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
 * `--keep-xml`: when set to true, the xml files generated to download using GIBS are preserved (defaults to false).
+* `--animate`: when set to true, a video will be generated from the images downloaded (defaults to false).
 
 ![GIBSDownloader image retrieval guide](images/step-3-gibsdownloader.jpg)
 
@@ -113,7 +114,6 @@ If you initially download a region for a range of dates without electing to tile
 To download the entire Earth, the coordinates you need to enter are: `"-90, -180" "90, 180"`. The GeoTiff file for one day of the entire Earth is approximately 38 GB.
 
 ### Upcoming Features
-* `--animate`: Users will be able to directly create videos from the downloaded imagery
 * Logging will be updated to use Python's logging library in order to provide the user with more information about the downloading process
 
 ## Citation

@@ -5,24 +5,25 @@ from GIBSDownloader.product import Product
 from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 
 class TiffDownloader():
-    @classmethod
-    def download_area_tiff(cls, region, date, download_path, xml_path, output, product):
-        """
-        region: rectangular region to be downloaded
-        date: YYYY-MM-DD
-        output: path/to/filename (do not specify extension)
-        returns tuple with dowloaded width and height
-        """
 
-        width, height = region.calculate_width_height(0.25)
+    @classmethod
+    def generate_download_filename(cls, output, product, date):
+        return "{}{}_{}".format(output, str(product), date)
+
+    @classmethod
+    def download_area_tiff(cls, region, date, xml_path, filename, product, width=None, height=None, out_frmt="GTiff"):
+        if out_frmt == "GTiff":
+            extension = 'tif'
+        else:
+            extension = 'jpeg'
+        
+        if width == None and height == None:
+            width, height = region.calculate_width_height(0.25)
         lon_lat = "{l_x} {upper_y} {r_x} {lower_y}".format(l_x=region.bl_coords.x, upper_y=region.tr_coords.y, r_x=region.tr_coords.x, lower_y=region.bl_coords.y)
 
         xml_filename = TiffDownloader.generate_xml(xml_path, product, date)
-        filename = "{}{}_{}.tif".format(output, str(product), date)
-        command = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} {xml} {f}".format(w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename)
-        
+        command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll} {xml} {f}.{ext}".format(of=out_frmt, w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=extension)
         os.system(command)
-        return filename
 
     @classmethod
     def get_dates_range(cls, start_date, end_date):
