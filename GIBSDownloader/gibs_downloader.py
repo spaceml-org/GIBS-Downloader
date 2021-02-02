@@ -113,7 +113,7 @@ def main():
     parser.add_argument("--generate-tfrecords", default=False, type=bool, help="generate tfrecords for image tiles")
     parser.add_argument("--verbose", default=False, type=bool, help="log downloading process")
     parser.add_argument("--product", default=Product.viirs, type=Product, help="select the NASA imagery product", choices=list(Product))
-    parser.add_argument("--keep-xml", default=False, type=bool, help="keep the xml files generated to download images")
+    parser.add_argument("--remove-xml", default=False, type=bool, help="remove the xml files generated to download images")
     parser.add_argument("--animate", default=False, type=bool, help="Generate a timelapse video of the downloaded region")
 
     # get the user input
@@ -127,7 +127,7 @@ def main():
     tiling = args.tile
     tile = Tile(args.tile_width, args.tile_height, args.tile_overlap, args.boundary_handling)
     product = args.product
-    keep_xml = args.keep_xml
+    remove_xml = args.keep_xml
     animate = args.animate
 
     # get the latitude, longitude values from the user input
@@ -167,7 +167,7 @@ def main():
     if rm_originals:
         remove_originals(originals_path, logging)
 
-    if not keep_xml:
+    if remove_xml:
         if os.path.exists(xml_path):
             shutil.rmtree(xml_path)
 

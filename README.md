@@ -61,7 +61,7 @@ As well as the required positional arguments, the GIBSDownloader also offers som
 * `--product`: selects which NASA imagery product to download from. There is currently support for two products:
     - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`
     - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
-* `--keep-xml`: when set to true, the xml files generated to download using GIBS are preserved (defaults to false).
+* `--remove-xml`: when set to true, the xml files generated to download using GIBS are deleted (defaults to false).
 * `--animate`: when set to true, a video will be generated from the images downloaded (defaults to false).
 
 ![GIBSDownloader image retrieval guide](images/step-3-gibsdownloader.jpg)
