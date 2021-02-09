@@ -171,7 +171,7 @@ def main():
     if rm_originals:
         remove_originals(originals_path, logging)
 
-    if keep_xml:
+    if not keep_xml:
         if os.path.exists(xml_path):
             shutil.rmtree(xml_path)
 
