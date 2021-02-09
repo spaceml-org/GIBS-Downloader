@@ -42,7 +42,7 @@ Once installed, the packaged can be referenced as `gdl` on the command-line.
 
 ### Positional Arguments
 There are four required positional arguments which are as follows:
-`start-date`, `end-date`, `bottom-left-coords`, `top-right-coords`. The first two arguments establish a range of dates to download the images, and the last two arguments form the bottom left and top right coordinates of the desired rectangular region to be downloaded. Note that the bottom left and top right coordinate pairs should be entered as `"latitude, longitude"`, in quotations.
+`start-date` (dates entered as `YYYY-MM-DD`), `end-date`, `bottom-left-coords`, `top-right-coords`. The first two arguments establish a range of dates to download the images, and the last two arguments form the bottom left and top right coordinates of the desired rectangular region to be downloaded. Note that the bottom left and top right coordinate pairs should be entered as `"latitude, longitude"`, in quotations.
 
 ### Optional Parameters
 As well as the required positional arguments, the GIBSDownloader also offers some optional parameters for increased customizability.  
