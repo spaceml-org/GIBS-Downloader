@@ -29,7 +29,7 @@ This package depends on the GDAL translator library. Unfortunately, GDAL is not 
 
 
 ## Installation 
-Once GDAL is installed on your machine, the GIBSDownloader package can be installed using: `pip install git+https://github.com/spaceml-org/NASA-GIBS-Downloader.git#egg=GIBSDownloader`  
+Once GDAL is installed on your machine, the GIBSDownloader package can be installed using: `pip install git+https://github.com/spaceml-org/GIBS-Downloader.git#egg=GIBSDownloader`  
 Once installed, the packaged can be referenced as `gdl` on the command-line.  
 \
 **NOTE:** this package must be installed in the same environment in which you installed GDAL.
