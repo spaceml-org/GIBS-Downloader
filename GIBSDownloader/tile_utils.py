@@ -2,6 +2,8 @@ import argparse
 import os
 import math
 import warnings
+import multiprocessing
+from multiprocessing.pool import ThreadPool as Pool
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -29,7 +31,7 @@ class TileUtils():
         return filename, Rectangle(Coordinate((bl_y, bl_x)), Coordinate((tr_y, tr_x)))
 
     @classmethod
-    def generate_intermediate_images(cls, tiff_path, tile, width, height, date):
+    def img_to_intermediate_images(cls, tiff_path, tile, width, height, date):
         output_dir = os.path.join(os.path.dirname(tiff_path), 'inter_{}'.format(date))
         os.mkdir(output_dir)
 
@@ -37,11 +39,12 @@ class TileUtils():
         width_k = MAX_INTERMEDIATE_LENGTH // tile.width
         height_k = MAX_INTERMEDIATE_LENGTH // tile.height
         
-        # LOOP THOUGH AND GENERATE THE INTERMEDIATE TILES
+        # LOOP THOUGH AND GET THE DATA TO GENERATE THE INTERMEDIATE TILES
         width_current = 0
         done_width = False
         width_length = (width_k - 1) * tile.width # (width_k - 1) to guarantee last image has at least 1 tile to avoid problems with tiling at boundaries
         index = 0
+        intermediate_data = []
         while width_current < width and not done_width:
             if width - width_current < width_length:
                 width_length = width - width_current
@@ -53,16 +56,34 @@ class TileUtils():
                 if height - height_current < height_length: 
                     height_length = height - height_current
                     done_height = True
-                output_path = os.path.join(output_dir, str(index))
-                command = "gdal_translate -of GTiff -srcwin --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {out_path}.tif".format(x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=tiff_path, out_path=output_path)
-                os.system(command)
+
+                intermediate_data.append((width_current, height_current, width_length, height_length, index))
+                
                 index += 1
                 height_current = height_current + height_length - tile.overlap * tile.width
             width_current = width_current + width_length - tile.overlap * tile.height
+        
+        # Utilize multithreading to generate the intermediate tiles
+        num_cores = multiprocessing.cpu_count()
+        pool = Pool(4*num_cores)
+        
+        print("Generating {} tiles using {} threads".format(len(intermediate_data), num_cores * 4))
+        for (width_current, height_current, width_length, height_length, index) in intermediate_data:
+            pool.apply_async(TileUtils.generate_intermediate_image, args=(output_dir, width_current, height_current, width_length, height_length, tiff_path, index))
+        
+        pool.close()
+        pool.join()
+
         return output_dir
 
+    @classmethod 
+    def generate_intermediate_image(cls, output_dir, width_current, height_current, width_length, height_length, tiff_path, index):
+        output_path = os.path.join(output_dir, str(index))
+        command = "gdal_translate -of GTiff -srcwin --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {out_path}.tif".format(x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=tiff_path, out_path=output_path)
+        os.system(command)
+
     @classmethod
-    def img_to_tiles(cls, tiff_path, tile, tile_date_path, inter_path=None):
+    def img_to_tiles(cls, tiff_path, tile, tile_date_path,inter_path=None):
         # Get metadata from original tif image
         metadata = TiffMetadata(tiff_path)
 
@@ -99,11 +120,12 @@ class TileUtils():
 
         # Calculate the number of tiles to be generated
         if tile.handling == Handling.discard_incomplete_tiles:
-            num_iterations = (WIDTH - tile.width * tile.overlap) // (tile.width * (1 -  tile.overlap)) * (HEIGHT - tile.height * tile.overlap) // (tile.height * (1 -  tile.overlap))
+            num_iterations = (WIDTH - tile.width * tile.overlap) // (tile.width * (1 - tile.overlap)) * (HEIGHT - tile.height * tile.overlap) // (tile.height * (1 -  tile.overlap))
         else:
-            num_iterations = math.ceil((WIDTH - tile.width * tile.overlap) / (tile.width * (1 -  tile.overlap))) * math.ceil((HEIGHT - tile.height * tile.overlap) / (tile.height * (1 -  tile.overlap)))
-        pbar = tqdm(total=num_iterations) # Create a progress bar for tiling one image
+            num_iterations = math.ceil((WIDTH - tile.width * tile.overlap) / (tile.width * (1 - tile.overlap))) * math.ceil((HEIGHT - tile.height * tile.overlap) / (tile.height * (1 -  tile.overlap)))
         
+        pixel_coords = []
+
         while(x < WIDTH and not done_x):
             if(WIDTH - x < tile.width):
                 done_x = True
@@ -119,27 +141,44 @@ class TileUtils():
                     if tile.handling == Handling.discard_incomplete_tiles:
                         continue
                     if tile.handling == Handling.complete_tiles_shift:
-                        y = HEIGHT - tile.height  
+                        y = HEIGHT - tile.height 
+                    
+                pixel_coords.append((x, y, done_x, done_y))
 
-                # Find which MODIS grid location the current tile fits into
-                output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
-                output_path = tile_date_path + region.lat_lon_to_modis() + '/'
-                if not os.path.exists(output_path):
-                    os.mkdir(output_path)
-
-                # Tiling past boundaries 
-                if tile.handling == Handling.include_incomplete_tiles and (done_x or done_y):
-                    incomplete_tile = img_arr[y:min(y + tile.height, HEIGHT), x:min(x + tile.width, WIDTH)]
-                    empty_array = np.zeros((tile.height, tile.height, 3), dtype=np.uint8)
-                    empty_array[0:incomplete_tile.shape[0], 0:incomplete_tile.shape[1]] = incomplete_tile
-                    incomplete_img = Image.fromarray(empty_array)
-                    incomplete_img.save(output_path + output_filename + ".jpeg")
-                else: # Tiling within boundaries
-                    tile_array = img_arr[y:y+tile.height, x:x+tile.width]
-                    tile_img = Image.fromarray(tile_array)
-                    tile_img.save(output_path + output_filename + ".jpeg")
-
-                pbar.update(1)
                 y += y_step
             x += x_step
-        pbar.close()
+
+        #Use multithreading to tile the numpy array
+        num_cores = multiprocessing.cpu_count()
+        pool = Pool(4*num_cores)
+
+        
+        print("Generating {} tiles using {} threads".format(len(pixel_coords), num_cores * 4))
+        for i, (x, y, done_x, done_y) in enumerate(pixel_coords):
+            pool.apply_async(TileUtils.generate_tile, args=(tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, i, len(pixel_coords)))
+        
+        pool.close()
+        pool.join()
+
+
+    @classmethod
+    def generate_tile(cls, tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, current, total):
+        # Find which MODIS grid location the current tile fits into
+        output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
+        output_path = tile_date_path + region.lat_lon_to_modis() + '/'
+        if not os.path.exists(output_path):
+            os.mkdir(output_path)
+
+        # Tiling past boundaries 
+        if tile.handling == Handling.include_incomplete_tiles and (done_x or done_y):
+            incomplete_tile = img_arr[y:min(y + tile.height, HEIGHT), x:min(x + tile.width, WIDTH)]
+            empty_array = np.zeros((tile.height, tile.height, 3), dtype=np.uint8)
+            empty_array[0:incomplete_tile.shape[0], 0:incomplete_tile.shape[1]] = incomplete_tile
+            incomplete_img = Image.fromarray(empty_array)
+            incomplete_img.save(output_path + output_filename + ".jpeg")
+        else: # Tiling within boundaries
+            tile_array = img_arr[y:y+tile.height, x:x+tile.width]
+            tile_img = Image.fromarray(tile_array)
+            tile_img.save(output_path + output_filename + ".jpeg")
+        
+        print("Tile {}/{}".format(current+1,total))

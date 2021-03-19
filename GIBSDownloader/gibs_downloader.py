@@ -58,7 +58,7 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region):
             print("Tiling day {} of {}".format(count + 1, len(files)))
             # if ultra large, then split into intermediate tiles and tile the intermediate tiles
             if ultra_large:
-                intermediate_dir = TileUtils.generate_intermediate_images(tiff_path, tile, width, height, metadata.date)
+                intermediate_dir = TileUtils.img_to_intermediate_images(tiff_path, tile, width, height, metadata.date)
                 for intermediate_tiff in os.listdir(intermediate_dir):
                     if intermediate_tiff.endswith("tif"):
                         intermediate_tiff_path = os.path.join(intermediate_dir, intermediate_tiff)
