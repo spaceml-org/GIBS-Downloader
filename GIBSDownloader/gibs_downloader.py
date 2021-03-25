@@ -49,6 +49,7 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region):
 
     files = [f for f in os.listdir(originals_path) if f.endswith('tif')]
     files.sort() # tile in chronological order
+
     for count, filename in enumerate(files):
         tiff_path = os.path.join(originals_path, filename) # path to GeoTiff file
         metadata = TiffMetadata(tiff_path)
@@ -58,6 +59,7 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region):
             print("Tiling day {} of {}".format(count + 1, len(files)))
             # if ultra large, then split into intermediate tiles and tile the intermediate tiles
             if ultra_large:
+                print("Image too large to tile at once. Dividing it into intermediate images")
                 intermediate_dir = TileUtils.img_to_intermediate_images(tiff_path, tile, width, height, metadata.date)
                 for intermediate_tiff in os.listdir(intermediate_dir):
                     if intermediate_tiff.endswith("tif"):

@@ -65,9 +65,9 @@ class TileUtils():
         
         # Utilize multithreading to generate the intermediate tiles
         num_cores = multiprocessing.cpu_count()
-        pool = Pool(4*num_cores)
+        pool = Pool(num_cores)
         
-        print("Generating {} tiles using {} threads".format(len(intermediate_data), num_cores * 4))
+        print("Generating {} intermediate images using {} threads".format(len(intermediate_data), num_cores))
         for (width_current, height_current, width_length, height_length, index) in intermediate_data:
             pool.apply_async(TileUtils.generate_intermediate_image, args=(output_dir, width_current, height_current, width_length, height_length, tiff_path, index))
         
@@ -148,17 +148,17 @@ class TileUtils():
                 y += y_step
             x += x_step
 
-        #Use multithreading to tile the numpy array
         num_cores = multiprocessing.cpu_count()
-        pool = Pool(4*num_cores)
+        print("Generating {} tiles using {} threads...".format(len(pixel_coords), num_cores), end="")
 
-        
-        print("Generating {} tiles using {} threads".format(len(pixel_coords), num_cores * 4))
+        #Use multithreading to tile the numpy array
+        pool = Pool(num_cores)
         for i, (x, y, done_x, done_y) in enumerate(pixel_coords):
             pool.apply_async(TileUtils.generate_tile, args=(tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, i, len(pixel_coords)))
         
         pool.close()
         pool.join()
+        print("done!")
 
 
     @classmethod
@@ -181,4 +181,3 @@ class TileUtils():
             tile_img = Image.fromarray(tile_array)
             tile_img.save(output_path + output_filename + ".jpeg")
         
-        print("Tile {}/{}".format(current+1,total))
