@@ -18,5 +18,16 @@ class TiffMetadata():
         filename = os.path.basename(tiff_path)
         components = filename.split('_')
         date = os.path.splitext(components[1])[0]
+        self.name = filename
         self.date = date
         self.product = Product(components[0])
+
+class IntermediateMetadata():
+    def __init__(self, inter_path):
+        filename = os.path.basename(inter_path)
+        components = filename.split("_")
+        self.name = filename
+        self.start_x = int(components[1])
+        self.start_y = int(components[2])
+        self.end_x = int(components[3])
+        self.end_y = int(os.path.splitext(components[4])[0])
