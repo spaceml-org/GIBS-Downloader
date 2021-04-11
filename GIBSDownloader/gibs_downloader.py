@@ -49,6 +49,7 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region):
 
     files = [f for f in os.listdir(originals_path) if f.endswith('tif')]
     files.sort() # tile in chronological order
+
     for count, filename in enumerate(files):
         tiff_path = os.path.join(originals_path, filename) # path to GeoTiff file
         metadata = TiffMetadata(tiff_path)
@@ -56,16 +57,7 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region):
         if not os.path.exists(tile_date_path):
             os.mkdir(tile_date_path)
             print("Tiling day {} of {}".format(count + 1, len(files)))
-            # if ultra large, then split into intermediate tiles and tile the intermediate tiles
-            if ultra_large:
-                intermediate_dir = TileUtils.generate_intermediate_images(tiff_path, tile, width, height, metadata.date)
-                for intermediate_tiff in os.listdir(intermediate_dir):
-                    if intermediate_tiff.endswith("tif"):
-                        intermediate_tiff_path = os.path.join(intermediate_dir, intermediate_tiff)
-                        TileUtils.img_to_tiles(tiff_path, tile, tile_date_path, inter_path=intermediate_tiff_path)
-                shutil.rmtree(intermediate_dir)
-            else:
-                TileUtils.img_to_tiles(tiff_path, tile, tile_date_path)
+            TileUtils.img_to_tiles(tiff_path, tile, tile_date_path, ultra_large)
         else: 
             print("Tiles for day {} have already been generated. Moving on to the next day".format(count + 1))
     print("The specified tiles have been generated")
