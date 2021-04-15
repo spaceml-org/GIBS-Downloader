@@ -20,7 +20,7 @@ def generate_download_path(start_date, end_date, bl_coords, output, product):
     base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=str(product), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
     return os.path.join(output, base)
 
-def download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, product):
+def download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, product, res):
     if not os.path.isdir(download_path):
         os.mkdir(download_path)
         os.mkdir(originals_path)
@@ -35,15 +35,16 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
         if not os.path.isfile(tiff_output + '.tif'):
             if logging:
                 print('Downloading:', date)
-            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, product)
+            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, product, res)
+            
     print("The specified region and set of dates have been downloaded")
 
-def tile_originals(tile_res_path, originals_path, tile, logging, region):
+def tile_originals(tile_res_path, originals_path, tile, logging, region, res):
     if not os.path.isdir(tile_res_path):
         os.mkdir(tile_res_path)
 
     ultra_large = False
-    width, height = region.calculate_width_height(.25)
+    width, height = region.calculate_width_height(res)
     if width * height > 2 * Image.MAX_IMAGE_PIXELS:
         ultra_large = True
 
@@ -81,13 +82,13 @@ def remove_originals(originals_path, logging):
     shutil.rmtree(originals_path)
     os.mkdir(originals_path)
 
-def generate_video(originals_path, region, dates, video_path, xml_path, product):
+def generate_video(originals_path, region, dates, video_path, xml_path, product, res):
     if not os.path.isdir(video_path):
         if not os.path.isdir(xml_path):
             os.mkdir(xml_path)
         print("Generating video...")
         os.mkdir(video_path)
-        Animator.format_images(originals_path, region, dates, video_path, xml_path, product)
+        Animator.format_images(originals_path, region, dates, video_path, xml_path, product, res)
         Animator.create_video(video_path)
         print("Video generation has finished!")
     else:
@@ -111,6 +112,8 @@ def main():
     parser.add_argument("--product", default=Product.viirs, type=Product, help="select the NASA imagery product", choices=list(Product))
     parser.add_argument("--keep-xml", default=False, type=bool, help="preserve the xml files generated to download images")
     parser.add_argument("--animate", default=False, type=bool, help="Generate a timelapse video of the downloaded region")
+    parser.add_argument("--name", default="MODIS Terra CorrectedReflectance TrueColor,0.25", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
+    
 
     # get the user input
     args = parser.parse_args()
@@ -125,6 +128,8 @@ def main():
     product = args.product
     keep_xml = args.keep_xml
     animate = args.animate
+    name, res = args.name.replace("_"," ").split(",")
+    res = float(res)
 
     # get the latitude, longitude values from the user input
     bl_coords = Coordinate([float(i) for i in args.bottom_left_coords.replace(" ","").split(',')])
@@ -149,16 +154,16 @@ def main():
     # get range of dates
     dates = TiffDownloader.get_dates_range(start_date, end_date)
 
-    download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, product)
+    download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, product, res)
 
     if tiling:
-        tile_originals(tile_res_path, originals_path, tile, logging, region)
+        tile_originals(tile_res_path, originals_path, tile, logging, region, res)
 
     if write_tfrecords:
         tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, product)
         
     if animate:
-        generate_video(originals_path, region, dates, video_path, xml_path, product)
+        generate_video(originals_path, region, dates, video_path, xml_path, product, res)
     
     if rm_originals:
         remove_originals(originals_path, logging)

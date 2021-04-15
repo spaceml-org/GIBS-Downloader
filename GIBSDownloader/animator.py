@@ -2,6 +2,7 @@ import os
 import warnings
 
 import cv2
+from cv2 import cv2
 from PIL import Image
 
 from GIBSDownloader.tiff_downloader import TiffDownloader
@@ -10,8 +11,8 @@ warnings.simplefilter('ignore', Image.DecompressionBombWarning)
 
 class Animator():
     @classmethod
-    def format_images(cls, tif_path, region, dates, video_path, xml_path, product):
-        width, height = region.calculate_width_height(.25)
+    def format_images(cls, tif_path, region, dates, video_path, xml_path, product, res):
+        width, height = region.calculate_width_height(res)
         if width * height > 2 * Image.MAX_IMAGE_PIXELS:
             print("The downloaded images are too large to generate a video. Redownloading the region with smaller image dimensions")
             ratio = width / height
@@ -19,7 +20,8 @@ class Animator():
             resized_width = resized_height * ratio
             for date in dates:
                 frame_name = TiffDownloader.generate_download_filename(video_path, product, date)
-                TiffDownloader.download_area_tiff(region, date, xml_path, frame_name, product, width=resized_width, height=resized_height, out_frmt="JPEG")
+                TiffDownloader.download_area_tiff(region, date, xml_path, frame_name, product, res, width=resized_width, height=resized_height, out_frmt="JPEG")
+            
         else:
             images = [img for img in os.listdir(tif_path) if img.endswith(".tif")]
             for image in images:
