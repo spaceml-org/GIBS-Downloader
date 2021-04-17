@@ -16,11 +16,11 @@ from GIBSDownloader.tiff_downloader import TiffDownloader
 from GIBSDownloader.file_metadata import TiffMetadata
 from GIBSDownloader.animator import Animator
 
-def generate_download_path(start_date, end_date, bl_coords, output, product):
-    base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=str(product), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
+def generate_download_path(start_date, end_date, bl_coords, output, name):
+    base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=name.replace(" ","-"), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
     return os.path.join(output, base)
 
-def download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, product, res):
+def download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res):
     if not os.path.isdir(download_path):
         os.mkdir(download_path)
         os.mkdir(originals_path)
@@ -31,11 +31,11 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
         os.mkdir(xml_path)
 
     for date in dates:
-        tiff_output = TiffDownloader.generate_download_filename(originals_path, product, date)
+        tiff_output = TiffDownloader.generate_download_filename(originals_path, name.replace(" ","-"), date)
         if not os.path.isfile(tiff_output + '.tif'):
             if logging:
                 print('Downloading:', date)
-            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, product, res)
+            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res)
             
     print("The specified region and set of dates have been downloaded")
 
@@ -63,14 +63,14 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region, res):
             print("Tiles for day {} have already been generated. Moving on to the next day".format(count + 1))
     print("The specified tiles have been generated")
 
-def tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, product):
+def tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name):
     from GIBSDownloader.tfrecord_utils import TFRecordUtils
     if os.path.isdir(tile_res_path):
             if not os.path.isdir(tfrecords_res_path):
                 os.mkdir(tfrecords_res_path)
                 if logging: 
                     print("Writing files at:", tile_res_path, " to TFRecords")
-                TFRecordUtils.write_to_tfrecords(tile_res_path, tfrecords_res_path, product)
+                TFRecordUtils.write_to_tfrecords(tile_res_path, tfrecords_res_path, name)
             else:
                 print("The specified TFRecords have already been written")
     else: 
@@ -82,13 +82,13 @@ def remove_originals(originals_path, logging):
     shutil.rmtree(originals_path)
     os.mkdir(originals_path)
 
-def generate_video(originals_path, region, dates, video_path, xml_path, product, res):
+def generate_video(originals_path, region, dates, video_path, xml_path, name, res):
     if not os.path.isdir(video_path):
         if not os.path.isdir(xml_path):
             os.mkdir(xml_path)
         print("Generating video...")
         os.mkdir(video_path)
-        Animator.format_images(originals_path, region, dates, video_path, xml_path, product, res)
+        Animator.format_images(originals_path, region, dates, video_path, xml_path, name, res)
         Animator.create_video(video_path)
         print("Video generation has finished!")
     else:
@@ -109,10 +109,10 @@ def main():
     parser.add_argument("--remove-originals", default=False, type=bool, help="keep/delete original downloaded images")
     parser.add_argument("--generate-tfrecords", default=False, type=bool, help="generate tfrecords for image tiles")
     parser.add_argument("--verbose", default=False, type=bool, help="log downloading process")
-    parser.add_argument("--product", default=Product.viirs, type=Product, help="select the NASA imagery product", choices=list(Product))
+    parser.add_argument("--product", default=None, type=Product, help="select the NASA imagery product", choices=list(Product))
     parser.add_argument("--keep-xml", default=False, type=bool, help="preserve the xml files generated to download images")
     parser.add_argument("--animate", default=False, type=bool, help="Generate a timelapse video of the downloaded region")
-    parser.add_argument("--name", default="MODIS Terra CorrectedReflectance TrueColor,0.25", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
+    parser.add_argument("--name", default=str(Product.viirs)+",0.25", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
     
 
     # get the user input
@@ -128,8 +128,13 @@ def main():
     product = args.product
     keep_xml = args.keep_xml
     animate = args.animate
-    name, res = args.name.replace("_"," ").split(",")
-    res = float(res)
+    
+    if product is not None:
+        name = product.get_long_name().replace("_"," ")
+        res = .25
+    else:
+        name, res = args.name.replace("_"," ").split(",")
+        res = float(res)
 
     # get the latitude, longitude values from the user input
     bl_coords = Coordinate([float(i) for i in args.bottom_left_coords.replace(" ","").split(',')])
@@ -141,7 +146,7 @@ def main():
         raise argparse.ArgumentTypeError('Inputted coordinates are invalid: order should be (lower_latitude,left_longitude upper_latitude,right_longitude)')
 
     # gets paths for downloads
-    download_path = generate_download_path(start_date, end_date, bl_coords, output_path, product)
+    download_path = generate_download_path(start_date, end_date, bl_coords, output_path, name)
     xml_path = download_path + '/xml_configs/'
     originals_path = download_path + '/original_images/'
     tiled_path = download_path + '/tiled_images/'
@@ -154,16 +159,16 @@ def main():
     # get range of dates
     dates = TiffDownloader.get_dates_range(start_date, end_date)
 
-    download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, product, res)
+    download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res)
 
     if tiling:
         tile_originals(tile_res_path, originals_path, tile, logging, region, res)
 
     if write_tfrecords:
-        tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, product)
+        tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name)
         
     if animate:
-        generate_video(originals_path, region, dates, video_path, xml_path, product, res)
+        generate_video(originals_path, region, dates, video_path, xml_path, name, res)
     
     if rm_originals:
         remove_originals(originals_path, logging)

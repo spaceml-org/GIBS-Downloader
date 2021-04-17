@@ -11,7 +11,7 @@ warnings.simplefilter('ignore', Image.DecompressionBombWarning)
 
 class Animator():
     @classmethod
-    def format_images(cls, tif_path, region, dates, video_path, xml_path, product, res):
+    def format_images(cls, tif_path, region, dates, video_path, xml_path, name, res):
         width, height = region.calculate_width_height(res)
         if width * height > 2 * Image.MAX_IMAGE_PIXELS:
             print("The downloaded images are too large to generate a video. Redownloading the region with smaller image dimensions")
@@ -19,8 +19,8 @@ class Animator():
             resized_height = 1080
             resized_width = resized_height * ratio
             for date in dates:
-                frame_name = TiffDownloader.generate_download_filename(video_path, product, date)
-                TiffDownloader.download_area_tiff(region, date, xml_path, frame_name, product, res, width=resized_width, height=resized_height, out_frmt="JPEG")
+                frame_name = TiffDownloader.generate_download_filename(video_path, name, date)
+                TiffDownloader.download_area_tiff(region, date, xml_path, frame_name, name, res, width=resized_width, height=resized_height, out_frmt="JPEG")
             
         else:
             images = [img for img in os.listdir(tif_path) if img.endswith(".tif")]
