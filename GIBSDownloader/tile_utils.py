@@ -89,10 +89,6 @@ class TileUtils():
 
         # Use the following to get the coordinates of each tile
         x_min, x_size, y_min, y_size = TileUtils.getGeoTransform(tiff_path + ".aux.xml")
-        print("x_min:", x_min)
-        print("x_size:", x_size)
-        print("y_min:", y_min)
-        print("y_size:", y_size)
        
         # Find the pixel coordinate extents of each tile to be generated
         pixel_coords = TileUtils.getTilingSplitCoords(tile, WIDTH, HEIGHT)
