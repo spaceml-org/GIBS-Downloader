@@ -129,6 +129,7 @@ def main():
     keep_xml = args.keep_xml
     animate = args.animate
     
+    # check if user used "product" argument for shortened products list
     if product is not None:
         name = product.get_long_name().replace("_"," ")
         res = .25

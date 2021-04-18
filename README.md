@@ -45,8 +45,16 @@ There are four required positional arguments which are as follows:
 `start-date` (dates entered as `YYYY-MM-DD`), `end-date`, `bottom-left-coords`, `top-right-coords`. The first two arguments establish a range of dates to download the images, and the last two arguments form the bottom left and top right coordinates of the desired rectangular region to be downloaded. Note that the bottom left and top right coordinate pairs should be entered as `"latitude, longitude"`, in quotations.
 
 ### Optional Parameters
-As well as the required positional arguments, the GIBS Downloader also offers some optional parameters for increased customizability.  
-* `--output-path`: specify the path to where the images should be downloaded (defaults to the current working directory)
+As well as the required positional arguments, the GIBS Downloader also offers some optional parameters for increased customizability.
+
+#### Select satellite imagery product
+* `--name`: Select the specific NASA product desired from this [list](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products) of products. ___NOTE:___ Currently limited to products available in *geographic projection* and image resolutions of (0.03, 0.06, 0.125, 0.25, 0.5, 1, 5, 10 km). Users will need to input the full imagery layer name followed by the image resolution in km, separated by a comma  
+(e.g. `--name="MODIS_Terra_CorrectedReflectance_TrueColor,.25"`)
+* `--product`: instead of using the `name` argument, we also offer `product` as a shortcut to some popular products:
+    - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`
+    - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
+
+#### Tiling
 * `--tile`: when set to true, each downloaded image will be tiled, and the tiles will be outputted as jpegs. Note that the tiles will be sorted into appropriate folders based on their date and location on the [MODIS Sinusoidal Tile Grid](https://modis-land.gsfc.nasa.gov/MODLAND_grid.html). The location is determined by the coordinates of the bottom left corner of the tile.
 * `--tile-width`: specifies the width of each tile (defaults to 512 px).  
 * `--tile-height`: specifies the height of each tile (defaults to 512 px).  
@@ -54,15 +62,19 @@ As well as the required positional arguments, the GIBS Downloader also offers so
 * `--boundary-handling`: determines what the tiling function should do when it reaches a tile that extends past the boundary of the image. There are three options: 
     - `complete-tiles-shift` guarantees that the edges of the images will be included in the tiles, but it performs a shift such that `tile-overlap` may not be respected (defaults to `complete-tiles-shift`)
     - `include-incomplete-tiles` includes the tiles which extend past the boundary and are thus missing data values for portions of the image
-    - `discard-incomplete-tiles` simply removes the images which extend past the boundaries . 
+    - `discard-incomplete-tiles` simply removes the images which extend past the boundaries. 
+
+#### Generate TFRecords
 * `--generate-tfrecords`: when set to true, the tiles are used to generate 100 MB TFRecord files which contain the tiles as well as the coordinates of the bottom left and top right corner of each tile (defaults to false). Note that this will require user installation of TensorFlow with `pip install tensorflow==2.4.0`
+
+#### Generate Video
+* `--animate`: when set to true, a video will be generated from the images downloaded (defaults to false).
+
+#### Additional features
+* `--output-path`: specify the path to where the images should be downloaded (defaults to the current working directory)
 * `--remove-originals`: when set to true, the original downloaded images will be deleted and only the tiled images and TFRecords will be saved (defaults to false).  
 * `--verbose`: when set to true, prints additional information about downloading process to console (defaults to false).
-* `--product`: selects which NASA imagery product to download from. There is currently support for two products:
-    - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`
-    - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
 * `--keep-xml`: when set to true, the xml files generated to download using GIBS are preserved (defaults to false).
-* `--animate`: when set to true, a video will be generated from the images downloaded (defaults to false).
 
 ![GIBS Downloader image retrieval guide](images/step-3-gibsdownloader.jpg)
 
