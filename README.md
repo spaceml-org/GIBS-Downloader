@@ -48,8 +48,8 @@ There are four required positional arguments which are as follows:
 As well as the required positional arguments, the GIBS Downloader also offers some optional parameters for increased customizability.
 
 #### Select satellite imagery product
-* `--name`: Select the specific NASA product desired from this [list](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products) of products. ___NOTE:___ Currently limited to products available in *geographic projection* and image resolutions of (0.03, 0.06, 0.125, 0.25, 0.5, 1, 5, 10 km). Users will need to input the full imagery layer name followed by the image resolution in km, separated by a comma  
-(e.g. `--name="MODIS_Terra_CorrectedReflectance_TrueColor,.25"`)
+* `--name`: Select the specific NASA product desired from this [list](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products) of products. ___NOTE:___ Currently limited to products available in *geographic projection*, jpeg format, and image resolutions of (0.03, 0.06, 0.125, 0.25, 0.5, 1, 5, 10 km). Users will need to input the full imagery layer name followed by the image resolution in km, separated by a comma  
+(e.g. `--name="MODIS_Terra_CorrectedReflectance_TrueColor,.25"`).
 * `--product`: instead of using the `name` argument, we also offer `product` as a shortcut to some popular products:
     - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`
     - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
