@@ -32,7 +32,7 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
 
     for date in dates:
         tiff_output = TiffDownloader.generate_download_filename(originals_path, name.replace(" ","-"), date)
-        if not os.path.isfile(tiff_output + '.tif'):
+        if not os.path.isfile(tiff_output + '.jpeg'):
             if logging:
                 print('Downloading:', date)
             TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res)
@@ -43,13 +43,9 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region, res):
     if not os.path.isdir(tile_res_path):
         os.mkdir(tile_res_path)
 
-    ultra_large = False
-    width, height = region.calculate_width_height(res)
-    if width * height > 2 * Image.MAX_IMAGE_PIXELS:
-        ultra_large = True
-
-    files = [f for f in os.listdir(originals_path) if f.endswith('tif')]
+    files = [f for f in os.listdir(originals_path) if f.endswith('jpeg')]
     files.sort() # tile in chronological order
+    print(files)
 
     for count, filename in enumerate(files):
         tiff_path = os.path.join(originals_path, filename) # path to GeoTiff file
@@ -58,7 +54,7 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region, res):
         if not os.path.exists(tile_date_path):
             os.mkdir(tile_date_path)
             print("Tiling day {} of {}".format(count + 1, len(files)))
-            TileUtils.img_to_tiles(tiff_path, tile, tile_date_path, ultra_large)
+            TileUtils.img_to_tiles(tiff_path, region, res, tile, tile_date_path)
         else: 
             print("Tiles for day {} have already been generated. Moving on to the next day".format(count + 1))
     print("The specified tiles have been generated")
@@ -112,7 +108,7 @@ def main():
     parser.add_argument("--product", default=None, type=Product, help="select the NASA imagery product", choices=list(Product))
     parser.add_argument("--keep-xml", default=False, type=bool, help="preserve the xml files generated to download images")
     parser.add_argument("--animate", default=False, type=bool, help="Generate a timelapse video of the downloaded region")
-    parser.add_argument("--name", default=str(Product.viirs)+",0.25", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
+    parser.add_argument("--name", default="VIIRS_SNPP_CorrectedReflectance_TrueColor,0.25", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
     
 
     # get the user input

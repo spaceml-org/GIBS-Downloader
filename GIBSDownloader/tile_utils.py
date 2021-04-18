@@ -10,7 +10,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from osgeo import gdal
 from PIL import Image
-from tqdm import tqdm
+from tqdm import tqdm 
+from bs4 import BeautifulSoup as bs
 
 from GIBSDownloader.tile import Tile
 from GIBSDownloader.handling import Handling
@@ -23,23 +24,20 @@ MAX_INTERMEDIATE_LENGTH = int(math.sqrt(2 * Image.MAX_IMAGE_PIXELS)) # Maximum w
 
 class TileUtils():
     @classmethod
-    def img_to_tiles(cls, tiff_path, tile, tile_date_path, ultra_large):
-        # Get metadata from original tif image
-        metadata = TiffMetadata(tiff_path)
-
-        # Open GeoTiff in gdal in order to get coordinate information
-        tif = gdal.Open(tiff_path)
-        band = tif.GetRasterBand(1)
-        WIDTH = band.XSize
-        HEIGHT = band.YSize
-
-        # Use the following to get the coordinates of each tile
-        gt = tif.GetGeoTransform()
-        x_min = gt[0]
-        x_size = gt[1]
-        y_min = gt[3]
-        y_size = gt[5]
-
+    def getGeoTransform(cls, path):
+        content = []
+        # Read the XML file
+        with open(path, "r") as f:
+            # Read each line in the file, readlines() returns a list of lines
+            content = f.readlines()
+            # Combine the lines in the list into a string
+            content = "".join(content)
+            bs_content = bs(content, "lxml")
+            values = str(bs_content.find("geotransform")).replace("<geotransform> ", "").replace("</geotransform>","").split(",")
+        return float(values[0]),float(values[1]),float(values[3]),float(values[5])
+        
+    @classmethod
+    def getTilingSplitCoords(cls, tile, WIDTH, HEIGHT):
         x_step, y_step = int(tile.width * (1 - tile.overlap)), int(tile.height * (1 - tile.overlap))
         x = 0 
         done_x = False
@@ -77,7 +75,27 @@ class TileUtils():
 
                 y += y_step
             x += x_step
+        return pixel_coords
 
+    @classmethod
+    def img_to_tiles(cls, tiff_path, region, res, tile, tile_date_path):
+        # Get metadata from original image
+        metadata = TiffMetadata(tiff_path)
+
+        WIDTH, HEIGHT = region.calculate_width_height(res)
+        ultra_large = False
+        if WIDTH * HEIGHT > 2 * Image.MAX_IMAGE_PIXELS:
+            ultra_large = True
+
+        # Use the following to get the coordinates of each tile
+        x_min, x_size, y_min, y_size = TileUtils.getGeoTransform(tiff_path + ".aux.xml")
+        print("x_min:", x_min)
+        print("x_size:", x_size)
+        print("y_min:", y_min)
+        print("y_size:", y_size)
+       
+        # Find the pixel coordinate extents of each tile to be generated
+        pixel_coords = TileUtils.getTilingSplitCoords(tile, WIDTH, HEIGHT)
 
         if ultra_large: 
             # Create the intermediate tiles

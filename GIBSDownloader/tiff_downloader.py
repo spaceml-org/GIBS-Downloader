@@ -11,9 +11,9 @@ class TiffDownloader():
         return "{}{}_{}".format(output, name, date)
 
     @classmethod
-    def download_area_tiff(cls, region, date, xml_path, filename, name, res, width=None, height=None, out_frmt="GTiff"):
-        if out_frmt == "GTiff":
-            extension = 'tif'
+    def download_area_tiff(cls, region, date, xml_path, filename, name, res, width=None, height=None, out_frmt="JPEG"):
+        if out_frmt == "JPEG":
+            extension = 'jpeg'
         else:
             extension = 'jpeg'
         
