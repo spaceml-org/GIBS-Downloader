@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-
+import pandas as pd
+import sys
 import os
 import shutil
+import pathlib
 import argparse
 from argparse import ArgumentParser
 
@@ -20,7 +22,7 @@ def generate_download_path(start_date, end_date, bl_coords, output, name):
     base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=name.replace(" ","-"), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
     return os.path.join(output, base)
 
-def download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res):
+def download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format):
     if not os.path.isdir(download_path):
         os.mkdir(download_path)
         os.mkdir(originals_path)
@@ -32,10 +34,10 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
 
     for date in dates:
         tiff_output = TiffDownloader.generate_download_filename(originals_path, name.replace(" ","-"), date)
-        if not os.path.isfile(tiff_output + '.jpeg'):
+        if not os.path.isfile(tiff_output + '.' + img_format):
             if logging:
                 print('Downloading:', date)
-            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res)
+            TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res, img_format)
             
     print("The specified region and set of dates have been downloaded")
 
@@ -108,7 +110,7 @@ def main():
     parser.add_argument("--product", default=None, type=Product, help="select the NASA imagery product", choices=list(Product))
     parser.add_argument("--keep-xml", default=False, type=bool, help="preserve the xml files generated to download images")
     parser.add_argument("--animate", default=False, type=bool, help="Generate a timelapse video of the downloaded region")
-    parser.add_argument("--name", default="VIIRS_SNPP_CorrectedReflectance_TrueColor,0.25", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
+    parser.add_argument("--name", default="VIIRS_SNPP_CorrectedReflectance_TrueColor", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
     
 
     # get the user input
@@ -124,15 +126,40 @@ def main():
     product = args.product
     keep_xml = args.keep_xml
     animate = args.animate
+    name = args.name
     
-    # check if user used "product" argument for shortened products list
-    if product is not None:
-        name = product.get_long_name().replace("_"," ")
-        res = .25
-    else:
-        name, res = args.name.replace("_"," ").split(",")
-        res = float(res)
+    # convert imagery products .csv file into a pandas dataframe
+    path = str(pathlib.Path(__file__).parent.absolute())
+    imagery_products_df = pd.read_csv(path+"/gibs_imagery_products.csv")
 
+    # search for product name specified by user in available products
+    name = name.lower().split()
+    filter_df = imagery_products_df
+
+    for x in name:
+        filter_df = filter_df[filter_df.Imagery_Product_Name.str.lower().str.contains(x, na=False)]
+    if len(filter_df) == 1:
+        name = filter_df.Imagery_Product_Name.item().replace("_"," ")
+        res = filter_df.Image_Resolution.item()
+        img_format = filter_df.Format.item()
+
+    elif len(set(filter_df.Imagery_Product_Name)) == 1:
+        filter_df = filter_df.sort_values(by=["Image_Resolution"])
+        name = filter_df.Imagery_Product_Name.iloc[0].replace("_"," ")
+        res = filter_df.Image_Resolution.iloc[0]
+        img_format = filter_df.Format.iloc[0]
+
+    else:
+        print("\n\n\nPlease enter the full imagery product name from the following list:\n")
+        print(filter_df[["Imagery_Product_Name", "Image_Resolution"]].to_string(index=False))
+        sys.exit("\n\n\n")
+
+    # Converting image resolution to kilometers
+    if res[-2:] == 'km':
+        res = float(res[:len(res)-2])
+    elif res[-1] == 'm':
+        res = float(res[:len(res)-1])/1000
+    
     # get the latitude, longitude values from the user input
     bl_coords = Coordinate([float(i) for i in args.bottom_left_coords.replace(" ","").split(',')])
     tr_coords = Coordinate([float(i) for i in args.top_right_coords.replace(" ", "").split(',')])
@@ -156,7 +183,7 @@ def main():
     # get range of dates
     dates = TiffDownloader.get_dates_range(start_date, end_date)
 
-    download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res)
+    download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format)
 
     if tiling:
         tile_originals(tile_res_path, originals_path, tile, logging, region, res)

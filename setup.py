@@ -28,5 +28,6 @@ setup(
     ), 
     keywords ='GIBS gdl satellite python package GIBSDownloader', 
     install_requires = requirements, 
-    zip_safe = False
+    zip_safe = False,
+    include_package_data=True
 )
