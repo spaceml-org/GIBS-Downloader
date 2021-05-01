@@ -78,7 +78,7 @@ class TileUtils():
         return pixel_coords
 
     @classmethod
-    def img_to_tiles(cls, tiff_path, region, res, tile, tile_date_path):
+    def img_to_tiles(cls, tiff_path, region, res, tile, tile_date_path, img_format):
         # Get metadata from original image
         metadata = TiffMetadata(tiff_path)
 
@@ -95,10 +95,10 @@ class TileUtils():
 
         if ultra_large: 
             # Create the intermediate tiles
-            inter_dir, img_width, img_height = TileUtils.img_to_intermediate_images(tiff_path, tile, WIDTH, HEIGHT, metadata.date)
+            inter_dir, img_width, img_height = TileUtils.img_to_intermediate_images(tiff_path, tile, WIDTH, HEIGHT, metadata.date, img_format)
 
             # Add each coordinate to its proper list
-            intermediate_files = [f for f in os.listdir(inter_dir) if f.endswith('jpeg')]
+            intermediate_files = [f for f in os.listdir(inter_dir) if f.endswith(img_format)]
             intermediate_files.sort()
 
             single_inter_pixel_coords = [] # for the tiles that fit in a single image
@@ -144,7 +144,7 @@ class TileUtils():
                 img_arr = np.array(src)
 
                 for i, (filename, x, y, done_x, done_y) in enumerate(single_inter_imgs):
-                    TileUtils.generate_tile(tile, img_arr, tile_date_path, metadata, inter_metadata.end_x - inter_metadata.start_x, inter_metadata.end_y - inter_metadata.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x=(x - inter_metadata.start_x), inter_y=(y - inter_metadata.start_y))
+                    TileUtils.generate_tile(tile, img_arr, tile_date_path, metadata, inter_metadata.end_x - inter_metadata.start_x, inter_metadata.end_y - inter_metadata.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, img_format, inter_x=(x - inter_metadata.start_x), inter_y=(y - inter_metadata.start_y))
 
                 """
                 #Use multithreading to tile the numpy array
@@ -176,7 +176,7 @@ class TileUtils():
                 img_arr_right = np.array(src_right)
 
                 for i, (f1, f2, x, y, done_x, done_y) in enumerate(double_inter_imgs):
-                    TileUtils.generate_tile_between_two_images(tile, img_arr_left, img_arr_right, tile_date_path, metadata, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y)
+                    TileUtils.generate_tile_between_two_images(tile, img_arr_left, img_arr_right, tile_date_path, metadata, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, img_format)
 
                 
                 #Use multithreading to tile the numpy array
@@ -220,7 +220,7 @@ class TileUtils():
                 img_arr_BR = np.array(src_BR)
 
                 for i, (f1, f2, f3, f4, x, y, done_x, done_y) in enumerate(quad_inter_imgs):
-                    TileUtils.generate_tile_between_four_images(tile, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, tile_date_path, metadata, inter_metadata_TL.end_x - inter_metadata_TL.start_x, inter_metadata_TL.end_y - inter_metadata_TL.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata_TL.start_x, y - inter_metadata_TL.start_y)
+                    TileUtils.generate_tile_between_four_images(tile, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, tile_date_path, metadata, inter_metadata_TL.end_x - inter_metadata_TL.start_x, inter_metadata_TL.end_y - inter_metadata_TL.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata_TL.start_x, y - inter_metadata_TL.start_y, img_format)
                
                 #Use multithreading to tile the numpy array
                 """
@@ -241,7 +241,7 @@ class TileUtils():
             img_arr = np.array(src)
 
             for i, (x, y, done_x, done_y) in enumerate(pixel_coords):
-                TileUtils.generate_tile(tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y)
+                TileUtils.generate_tile(tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, img_format)
 
             #Use multithreading to tile the numpy array
             """
@@ -257,7 +257,7 @@ class TileUtils():
             print("done!")
 
     @classmethod
-    def generate_tile(cls, tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x = None, inter_y = None):
+    def generate_tile(cls, tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, img_format, inter_x = None, inter_y = None):
         # Find which MODIS grid location the current tile fits into
         output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
         output_path = tile_date_path + region.lat_lon_to_modis() + '/'
@@ -277,14 +277,14 @@ class TileUtils():
             empty_array = np.zeros((tile.height, tile.height, 3), dtype=np.uint8)
             empty_array[0:incomplete_tile.shape[0], 0:incomplete_tile.shape[1]] = incomplete_tile
             incomplete_img = Image.fromarray(empty_array)
-            incomplete_img.save(output_path + output_filename + ".jpeg")
+            incomplete_img.save(output_path + output_filename + "." + img_format)
         else: # Tiling within boundaries
             tile_array = img_arr[real_y:real_y+tile.height, real_x:real_x+tile.width]
             tile_img = Image.fromarray(tile_array)
-            tile_img.save(output_path + output_filename + ".jpeg")      
+            tile_img.save(output_path + output_filename + "." + img_format)      
 
     @classmethod 
-    def generate_tile_between_two_images(cls, tile, img_arr_left, img_arr_right, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x, inter_y):
+    def generate_tile_between_two_images(cls, tile, img_arr_left, img_arr_right, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x, inter_y, img_format):
         # Find which MODIS grid location the current tile fits into
         output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
         output_path = tile_date_path + region.lat_lon_to_modis() + '/'
@@ -310,10 +310,10 @@ class TileUtils():
             empty_array[left_chunk.shape[0]:left_chunk.shape[0]+right_chunk.shape[0], 0:right_chunk.shape[1]] = right_chunk
         if leftover_x > 0 or leftover_y > 0:
             complete_img = Image.fromarray(empty_array)
-            complete_img.save(output_path + output_filename + ".jpeg")
+            complete_img.save(output_path + output_filename + "." + img_format)
 
     @classmethod 
-    def generate_tile_between_four_images(cls, tile, img_arr_TL, img_arr_TR, img_arr_BL,img_arr_BR, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x, inter_y):
+    def generate_tile_between_four_images(cls, tile, img_arr_TL, img_arr_TR, img_arr_BL,img_arr_BR, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x, inter_y, img_format):
         # Find which MODIS grid location the current tile fits into
         output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
         output_path = tile_date_path + region.lat_lon_to_modis() + '/'
@@ -334,7 +334,7 @@ class TileUtils():
         empty_array[top_left_chunk.shape[0]:top_left_chunk.shape[0]+bot_left_chunk.shape[0], 0:bot_left_chunk.shape[1]] = bot_left_chunk
         empty_array[top_left_chunk.shape[0]:top_left_chunk.shape[0]+bot_right_chunk.shape[0], top_left_chunk.shape[1]:top_left_chunk.shape[1]+bot_right_chunk.shape[1]] = bot_right_chunk
         complete_img = Image.fromarray(empty_array)
-        complete_img.save(output_path + output_filename + ".jpeg")
+        complete_img.save(output_path + output_filename + "." + img_format)
 
     @classmethod
     def generate_tile_name_with_coordinates(cls, date, x, x_min, x_size, y, y_min, y_size, tile):
@@ -346,7 +346,7 @@ class TileUtils():
         return filename, Rectangle(Coordinate((bl_y, bl_x)), Coordinate((tr_y, tr_x)))
 
     @classmethod
-    def img_to_intermediate_images(cls, tiff_path, tile, width, height, date):
+    def img_to_intermediate_images(cls, tiff_path, tile, width, height, date, img_format):
         output_dir = os.path.join(os.path.dirname(tiff_path), 'inter_{}'.format(date))
         os.mkdir(output_dir)
 
@@ -363,7 +363,7 @@ class TileUtils():
         original_max_img_width = max_img_width   # Store these values in another variable so they can be returned
         original_max_img_height = max_img_height  
         
-        print(width, height, max_img_width, max_img_height, width / max_img_width, height /max_img_height )
+        print(width, height, max_img_width, max_img_height, width / max_img_width, height / max_img_height )
         # LOOP THOUGH AND GET THE DATA TO GENERATE THE INTERMEDIATE TILES
         width_current = 0
         done_width = False
@@ -391,7 +391,7 @@ class TileUtils():
         
         print("Generating {} intermediate images using {} threads".format(len(intermediate_data), num_cores))
         for (width_current, height_current, width_length, height_length, index) in intermediate_data:
-            pool.apply_async(TileUtils.generate_intermediate_image, args=(output_dir, width_current, height_current, width_length, height_length, tiff_path, index))
+            pool.apply_async(TileUtils.generate_intermediate_image, args=(output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format))
         
         pool.close()
         pool.join()
@@ -399,8 +399,8 @@ class TileUtils():
         return output_dir, original_max_img_width, original_max_img_height
 
     @classmethod 
-    def generate_intermediate_image(cls, output_dir, width_current, height_current, width_length, height_length, tiff_path, index):
+    def generate_intermediate_image(cls, output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format):
         output_path = os.path.join(output_dir, "{}_{}_{}_{}_{}".format(str(index).zfill(5), width_current, height_current, width_current + width_length, height_current + height_length))
-        command = "gdal_translate -of JPEG -srcwin --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {out_path}.jpeg".format(x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=tiff_path, out_path=output_path)
+        command = "gdal_translate -of {of} -srcwin --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {out_path}.{ext}".format(of=img_format.upper(), x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=tiff_path, out_path=output_path, ext=img_format)
         os.system(command)
         

@@ -51,8 +51,8 @@ class TFRecordUtils():
         return tf.train.Example(features=tf.train.Features(feature=feature))
     
     @classmethod
-    def write_to_tfrecords(cls, input_path, output_path, name):
-        files = [f for f in glob.glob(input_path + "**/*.jpeg", recursive=True)]
+    def write_to_tfrecords(cls, input_path, output_path, name, img_format):
+        files = [f for f in glob.glob(input_path + "**/*.{}".format(img_format), recursive=True)]
         count = 0
         version = 0
         while(count < len(files)):

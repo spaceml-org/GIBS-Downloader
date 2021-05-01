@@ -1,9 +1,6 @@
 #!/usr/bin/env python
-import pandas as pd
-import sys
 import os
 import shutil
-import pathlib
 import argparse
 from argparse import ArgumentParser
 
@@ -17,6 +14,7 @@ from GIBSDownloader.tile_utils import TileUtils
 from GIBSDownloader.tiff_downloader import TiffDownloader
 from GIBSDownloader.file_metadata import TiffMetadata
 from GIBSDownloader.animator import Animator
+from GIBSDownloader.dataset_searcher import DatasetSearcher
 
 def generate_download_path(start_date, end_date, bl_coords, output, name):
     base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=name.replace(" ","-"), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
@@ -41,11 +39,11 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
             
     print("The specified region and set of dates have been downloaded")
 
-def tile_originals(tile_res_path, originals_path, tile, logging, region, res):
+def tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format):
     if not os.path.isdir(tile_res_path):
         os.mkdir(tile_res_path)
 
-    files = [f for f in os.listdir(originals_path) if f.endswith('jpeg')]
+    files = [f for f in os.listdir(originals_path) if f.endswith(img_format)]
     files.sort() # tile in chronological order
     print(files)
 
@@ -56,19 +54,19 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region, res):
         if not os.path.exists(tile_date_path):
             os.mkdir(tile_date_path)
             print("Tiling day {} of {}".format(count + 1, len(files)))
-            TileUtils.img_to_tiles(tiff_path, region, res, tile, tile_date_path)
+            TileUtils.img_to_tiles(tiff_path, region, res, tile, tile_date_path, img_format)
         else: 
             print("Tiles for day {} have already been generated. Moving on to the next day".format(count + 1))
     print("The specified tiles have been generated")
 
-def tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name):
+def tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_format):
     from GIBSDownloader.tfrecord_utils import TFRecordUtils
     if os.path.isdir(tile_res_path):
             if not os.path.isdir(tfrecords_res_path):
                 os.mkdir(tfrecords_res_path)
                 if logging: 
                     print("Writing files at:", tile_res_path, " to TFRecords")
-                TFRecordUtils.write_to_tfrecords(tile_res_path, tfrecords_res_path, name)
+                TFRecordUtils.write_to_tfrecords(tile_res_path, tfrecords_res_path, name, img_format)
             else:
                 print("The specified TFRecords have already been written")
     else: 
@@ -80,14 +78,14 @@ def remove_originals(originals_path, logging):
     shutil.rmtree(originals_path)
     os.mkdir(originals_path)
 
-def generate_video(originals_path, region, dates, video_path, xml_path, name, res):
+def generate_video(originals_path, region, dates, video_path, xml_path, name, res, img_format):
     if not os.path.isdir(video_path):
         if not os.path.isdir(xml_path):
             os.mkdir(xml_path)
         print("Generating video...")
         os.mkdir(video_path)
-        Animator.format_images(originals_path, region, dates, video_path, xml_path, name, res)
-        Animator.create_video(video_path)
+        Animator.format_images(originals_path, region, dates, video_path, xml_path, name, res, img_format)
+        Animator.create_video(video_path, img_format)
         print("Video generation has finished!")
     else:
         print("The video has already been generated")
@@ -128,37 +126,7 @@ def main():
     animate = args.animate
     name = args.name
     
-    # convert imagery products .csv file into a pandas dataframe
-    path = str(pathlib.Path(__file__).parent.absolute())
-    imagery_products_df = pd.read_csv(path+"/gibs_imagery_products.csv")
-
-    # search for product name specified by user in available products
-    name = name.lower().split()
-    filter_df = imagery_products_df
-
-    for x in name:
-        filter_df = filter_df[filter_df.Imagery_Product_Name.str.lower().str.contains(x, na=False)]
-    if len(filter_df) == 1:
-        name = filter_df.Imagery_Product_Name.item().replace("_"," ")
-        res = filter_df.Image_Resolution.item()
-        img_format = filter_df.Format.item()
-
-    elif len(set(filter_df.Imagery_Product_Name)) == 1:
-        filter_df = filter_df.sort_values(by=["Image_Resolution"])
-        name = filter_df.Imagery_Product_Name.iloc[0].replace("_"," ")
-        res = filter_df.Image_Resolution.iloc[0]
-        img_format = filter_df.Format.iloc[0]
-
-    else:
-        print("\n\n\nPlease enter the full imagery product name from the following list:\n")
-        print(filter_df[["Imagery_Product_Name", "Image_Resolution"]].to_string(index=False))
-        sys.exit("\n\n\n")
-
-    # Converting image resolution to kilometers
-    if res[-2:] == 'km':
-        res = float(res[:len(res)-2])
-    elif res[-1] == 'm':
-        res = float(res[:len(res)-1])/1000
+    name, res, img_format = DatasetSearcher.getProductInfo(name)
     
     # get the latitude, longitude values from the user input
     bl_coords = Coordinate([float(i) for i in args.bottom_left_coords.replace(" ","").split(',')])
@@ -186,13 +154,13 @@ def main():
     download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format)
 
     if tiling:
-        tile_originals(tile_res_path, originals_path, tile, logging, region, res)
+        tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format)
 
     if write_tfrecords:
-        tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name)
+        tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_format)
         
     if animate:
-        generate_video(originals_path, region, dates, video_path, xml_path, name, res)
+        generate_video(originals_path, region, dates, video_path, xml_path, name, res, img_format)
     
     if rm_originals:
         remove_originals(originals_path, logging)
