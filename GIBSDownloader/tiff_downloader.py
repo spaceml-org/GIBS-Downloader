@@ -16,9 +16,10 @@ class TiffDownloader():
         if width == None and height == None:
             width, height = region.calculate_width_height(res)
         lon_lat = "{l_x} {upper_y} {r_x} {lower_y}".format(l_x=region.bl_coords.x, upper_y=region.tr_coords.y, r_x=region.tr_coords.x, lower_y=region.bl_coords.y)
-
+        
         xml_filename = TiffDownloader.generate_xml(xml_path, name, date)
         command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll} {xml} {f}.{ext}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
+        print(command)
         os.system(command)
 
     @classmethod

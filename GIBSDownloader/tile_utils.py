@@ -385,7 +385,12 @@ class TileUtils():
                 index += 1
             width_current += max_img_width
         
+        # Sequentially generate intermediate tiles
+        for (width_current, height_current, width_length, height_length, index) in intermediate_data:
+            TileUtils.generate_intermediate_image(output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format)
+        
         # Utilize multithreading to generate the intermediate tiles
+        """
         num_cores = multiprocessing.cpu_count()
         pool = Pool(num_cores)
         
@@ -395,6 +400,7 @@ class TileUtils():
         
         pool.close()
         pool.join()
+        """
 
         return output_dir, original_max_img_width, original_max_img_height
 
