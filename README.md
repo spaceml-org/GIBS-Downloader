@@ -49,7 +49,6 @@ As well as the required positional arguments, the GIBS Downloader also offers so
 
 #### Satellite Imagery Product Search and Selection
 * `--name`: Allows users to enter keywords to search for specific products from this [list](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products) of products. GIBS Downloader will search for and output a subset of products containing the searched words. Once a product has been selected from the outputted subset, the user should copy and paste the full product name into the parameter again. ___NOTE:___ It is recommended that user select products that are in *geographic projection* and have image resolutions contained in the following list: (0.03, 0.06, 0.125, 0.25, 0.5, 1, 5, 10 km).
-
 * `--product`: instead of using the `name` argument, we also offer `product` as a shortcut to some popular products:
     - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`
     - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
