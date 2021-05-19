@@ -59,7 +59,7 @@ As well as the required positional arguments, the GIBS Downloader also offers so
   ---
   Suppose the user wants a dataset of images of population density for North America. To utilize the search feature, the user might enter the following command: 
   
-  `gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="population"`
+  `gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="population density"`
 
 GIBS Downloader will return the following search results:
 
