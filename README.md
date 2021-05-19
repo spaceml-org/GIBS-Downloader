@@ -47,15 +47,46 @@ There are four required positional arguments which are as follows:
 ### Optional Parameters
 As well as the required positional arguments, the GIBS Downloader also offers some optional parameters for increased customizability.
 
-#### Select satellite imagery product
-* `--name`: Select the specific NASA product desired from this [list](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products) of products. ___NOTE:___ Currently limited to products available in *geographic projection*, jpeg format, and image resolutions of (0.03, 0.06, 0.125, 0.25, 0.5, 1, 5, 10 km). Users will need to input the full imagery layer name followed by the image resolution in km, separated by a comma  
-(e.g. `--name="MODIS_Terra_CorrectedReflectance_TrueColor,.25"`).
+#### Satellite Imagery Product Search and Selection
+* `--name`: Allows users to enter keywords to search for specific products from this [list](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products) of products. GIBS Downloader will search for and output a subset of products containing the searched words. Once a product has been selected from the outputted subset, the user should copy and paste the full product name into the parameter again. ___NOTE:___ It is recommended that user select products that are in *geographic projection* and have image resolutions contained in the following list: (0.03, 0.06, 0.125, 0.25, 0.5, 1, 5, 10 km).
+
 * `--product`: instead of using the `name` argument, we also offer `product` as a shortcut to some popular products:
     - `modis`: downloads `MODIS_Terra_CorrectedReflectance_TrueColor`
     - `viirs`: downloads `VIIRS_SNPP_CorrectedReflectance_TrueColor` (defaults to `viirs`)
 
+<details>
+  <summary>Click here to view an example product search utilizing the dataset searcher</summary>
+
+  ---
+  Suppose the user wants a dataset of images of population density for North America. To utilize the search feature, the user might enter the following command: 
+  
+  `gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="population"`
+
+GIBS Downloader will return the following search results:
+
+|        Imagery_Product_Name | Image_Resolution | 
+| --------------------------- | ---------------- | 
+| GPW_Population_Density_2000 |             1 km |
+| GPW_Population_Density_2005 |             1 km |
+| GPW_Population_Density_2010 |             1 km |
+| GPW_Population_Density_2015 |             1 km |
+| GPW_Population_Density_2020 |             1 km |
+
+The user is provided with the full names of all imagery products featuring "population" as well as their associated resolutions. To download population density images from 2020, the user would then enter the same command as before, replacing "population" with the full imagery layer name:
+
+`gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="GPW_Population_Density_2020"`
+
+The download yields the following image: 
+
+![North America population density image](images/NA_population.png)
+
+---
+</details>
+
+
+
 #### Tiling
-* `--tile`: when set to true, each downloaded image will be tiled, and the tiles will be outputted as jpegs. Note that the tiles will be sorted into appropriate folders based on their date and location on the [MODIS Sinusoidal Tile Grid](https://modis-land.gsfc.nasa.gov/MODLAND_grid.html). The location is determined by the coordinates of the bottom left corner of the tile.
+* `--tile`: when set to true, each downloaded image will be tiled. Note that the tiles will be sorted into appropriate folders based on their date and location on the [MODIS Sinusoidal Tile Grid](https://modis-land.gsfc.nasa.gov/MODLAND_grid.html) (in order to prevent the creation of a single directory with tens of thousands of images). The location is determined by the coordinates of the bottom left corner of the tile.
 * `--tile-width`: specifies the width of each tile (defaults to 512 px).  
 * `--tile-height`: specifies the height of each tile (defaults to 512 px).  
 * `--tile-overlap`: determines the overlap between consecutive tiles while tiling (defaults to 0.5).  
@@ -92,7 +123,7 @@ These will create the following directory structure:
 ```
 product_lower-lat_left-lon_start-date_end-date/
       |> original_images/
-           |> product_date.tif
+           |> product_date.jpeg
       |> tiled_images/
            |> width_height_overlap/
                 |> date/

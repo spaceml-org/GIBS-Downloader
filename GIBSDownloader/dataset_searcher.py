@@ -40,13 +40,12 @@ class DatasetSearcher():
         for x in name:
             filter_df = filter_df[filter_df.Imagery_Product_Name.str.lower().str.contains(x, na=False)]
 
-        if len(filter_df) == 1 and name[0] == filter_df.Imagery_Product_Name.item():
+        if len(filter_df) == 1 and name[0] == filter_df.Imagery_Product_Name.item().lower():
             name = filter_df.Imagery_Product_Name.item().replace("_"," ")
             res = filter_df.Image_Resolution.item()
             img_format = filter_df.Image_Format.item()
-            print(name, res, img_format)
             
-        elif len(set(filter_df.Imagery_Product_Name)) == 1 and name[0] == set(filter_df.Imagery_Product_Name):
+        elif len(set(filter_df.Imagery_Product_Name)) == 1 and name[0] == list(set(filter_df.Imagery_Product_Name))[0].lower():
             filter_df = filter_df.sort_values(by=["Image_Resolution"])
             name = filter_df.Imagery_Product_Name.iloc[0].replace("_"," ")
             res = filter_df.Image_Resolution.iloc[0]

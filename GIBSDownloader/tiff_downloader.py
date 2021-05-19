@@ -19,7 +19,6 @@ class TiffDownloader():
         
         xml_filename = TiffDownloader.generate_xml(xml_path, name, date)
         command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll} {xml} {f}.{ext}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
-        print(command)
         os.system(command)
 
     @classmethod
