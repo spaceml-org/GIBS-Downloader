@@ -10,12 +10,12 @@
 
 [![Python Version](https://img.shields.io/badge/Python-3.6%20|%203.7%20|%203.8-green.svg)](https://www.python.org/)
 ![platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
-![Version](https://img.shields.io/badge/Version-1.0.0-blue)
+![Version](https://img.shields.io/badge/Version-1.1.0-blue)
 
 </div>
 
 # GIBS Downloader
-GIBS Downloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for downloading the following products: `MODIS_Terra_CorrectedReflectance_TrueColor`, `VIIRS_SNPP_CorrectedReflectance_TrueColor`. You can read more about these products [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products#expand-CorrectedReflectance17Products).  
+GIBS Downloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for NASA GIBS imagery products found [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products).  
 \
 E.g. you can download images of the first week of the 2020 California wildfires as follows:  
 `gdl 2020-08-16 2020-08-22 "37.003277, -124.328539" "40.353784, -120.253964"`   
@@ -156,7 +156,7 @@ If you initially download a region for a range of dates without electing to tile
 To download the entire Earth, the coordinates you need to enter are: `"-90, -180" "90, 180"`. The GeoTiff file for one day of the entire Earth is approximately 38 GB.
 
 ### Upcoming Features
-* Logging will be updated to use Python's logging library in order to provide the user with more information about the downloading process
+* Tiling speed will be improved with multiprocessing
 
 ## Citation
 If you find GIBS Downloader useful in your research, please consider citing
