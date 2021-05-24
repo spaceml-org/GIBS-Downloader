@@ -51,13 +51,13 @@ class TFRecordUtils():
         return tf.train.Example(features=tf.train.Features(feature=feature))
     
     @classmethod
-    def write_to_tfrecords(cls, input_path, output_path, product):
-        files = [f for f in glob.glob(input_path + "**/*.jpeg", recursive=True)]
+    def write_to_tfrecords(cls, input_path, output_path, name, img_format):
+        files = [f for f in glob.glob(input_path + "**/*.{}".format(img_format), recursive=True)]
         count = 0
         version = 0
         while(count < len(files)):
             total_file_size = 0
-            with tf.io.TFRecordWriter("{path}{name}_tf-{v}.tfrecord".format(path=output_path, name=str(product), v='%.3d' % (version))) as writer:
+            with tf.io.TFRecordWriter("{path}{name}_tf-{v}.tfrecord".format(path=output_path, name=name, v='%.3d' % (version))) as writer:
                 while(total_file_size < MAX_FILE_SIZE and count < len(files)):    
                     filename = files[count]
                     metadata = TileMetadata(filename)

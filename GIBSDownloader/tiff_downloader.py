@@ -7,22 +7,18 @@ from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 class TiffDownloader():
 
     @classmethod
-    def generate_download_filename(cls, output, product, date):
-        return "{}{}_{}".format(output, str(product), date)
+    def generate_download_filename(cls, output, name, date):
+        return "{}{}_{}".format(output, name, date)
 
     @classmethod
-    def download_area_tiff(cls, region, date, xml_path, filename, product, width=None, height=None, out_frmt="GTiff"):
-        if out_frmt == "GTiff":
-            extension = 'tif'
-        else:
-            extension = 'jpeg'
+    def download_area_tiff(cls, region, date, xml_path, filename, name, res, img_format, width=None, height=None):
         
         if width == None and height == None:
-            width, height = region.calculate_width_height(0.25)
+            width, height = region.calculate_width_height(res)
         lon_lat = "{l_x} {upper_y} {r_x} {lower_y}".format(l_x=region.bl_coords.x, upper_y=region.tr_coords.y, r_x=region.tr_coords.x, lower_y=region.bl_coords.y)
-
-        xml_filename = TiffDownloader.generate_xml(xml_path, product, date)
-        command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll} {xml} {f}.{ext}".format(of=out_frmt, w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=extension)
+        
+        xml_filename = TiffDownloader.generate_xml(xml_path, name, date)
+        command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll} {xml} {f}.{ext}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
         os.system(command)
 
     @classmethod
@@ -37,9 +33,9 @@ class TiffDownloader():
         return dates
     
     @classmethod
-    def generate_xml(cls, xml_path, product, date):
-        xml_base = "<GDAL_WMS><Service name=\"TMS\"><ServerUrl>https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/{prod}/default/{d}/250m/".format(prod=product.get_long_name(), d=date)
-        xml_end = "${z}/${y}/${x}.jpg</ServerUrl></Service><DataWindow><UpperLeftX>-180.0</UpperLeftX><UpperLeftY>90</UpperLeftY><LowerRightX>396.0</LowerRightX><LowerRightY>-198</LowerRightY><TileLevel>8</TileLevel><TileCountX>2</TileCountX><TileCountY>1</TileCountY><YOrigin>top</YOrigin></DataWindow><Projection>EPSG:4326</Projection><BlockSizeX>512</BlockSizeX><BlockSizeY>512</BlockSizeY><BandsCount>3</BandsCount></GDAL_WMS>"
+    def generate_xml(cls, xml_path, name, date):
+        xml_base = '<GDAL_WMS><Service name="TiledWMS"><ServerUrl>https://gibs.earthdata.nasa.gov/twms/epsg4326/best/twms.cgi?'
+        xml_end = '</ServerUrl><TiledGroupName>{name} tileset</TiledGroupName><Change key="${{time}}">{date}</Change></Service></GDAL_WMS>'.format(name=name,date=date)
         xml_content = xml_base + xml_end
 
         xml_filename = '{}{}.xml'.format(xml_path, date)
@@ -47,3 +43,6 @@ class TiffDownloader():
         with open(xml_filename, 'w') as xml_file:
             xml_file.write(xml_content)
         return xml_filename
+
+
+

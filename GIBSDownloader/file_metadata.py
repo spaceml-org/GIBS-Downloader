@@ -20,7 +20,7 @@ class TiffMetadata():
         date = os.path.splitext(components[1])[0]
         self.name = filename
         self.date = date
-        self.product = Product(components[0])
+        self.product_name = components[0]
 
 class IntermediateMetadata():
     def __init__(self, inter_path):
