@@ -142,21 +142,21 @@ class TileUtils():
                 img_path = os.path.join(inter_dir, filename)
                 src = Image.open(img_path)
                 img_arr = np.array(src)
-
+                """
                 for i, (filename, x, y, done_x, done_y) in enumerate(single_inter_imgs):
                     TileUtils.generate_tile(tile, img_arr, tile_date_path, metadata, inter_metadata.end_x - inter_metadata.start_x, inter_metadata.end_y - inter_metadata.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, img_format, inter_x=(x - inter_metadata.start_x), inter_y=(y - inter_metadata.start_y))
-
                 """
+                
                 #Use multithreading to tile the numpy array
                 num_cores = multiprocessing.cpu_count()
                 print("Generating {} tiles using {} threads...".format(len(single_inter_imgs), num_cores), end="")
                 pool = Pool(num_cores)
 
                 for i, (filename, x, y, done_x, done_y) in enumerate(single_inter_imgs):
-                    pool.apply_async(TileUtils.generate_tile, args=(tile, img_arr, tile_date_path, metadata, inter_metadata.end_x - inter_metadata.start_x, inter_metadata.end_y - inter_metadata.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y,), kwds={"inter_x":(x - inter_metadata.start_x), "inter_y":(y - inter_metadata.start_y)})
+                    pool.apply_async(TileUtils.generate_tile, args=(tile, img_arr, tile_date_path, metadata, inter_metadata.end_x - inter_metadata.start_x, inter_metadata.end_y - inter_metadata.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, img_format, i,), kwds={"inter_x":(x - inter_metadata.start_x), "inter_y":(y - inter_metadata.start_y)})
                 pool.close()
                 pool.join()
-                """
+                
             
             # Tile in between two images
             for double_inter_imgs in tqdm(double_inter_pixel_coords):
@@ -175,20 +175,21 @@ class TileUtils():
                 src_right = Image.open(img_path_right)
                 img_arr_right = np.array(src_right)
 
+                """
                 for i, (f1, f2, x, y, done_x, done_y) in enumerate(double_inter_imgs):
                     TileUtils.generate_tile_between_two_images(tile, img_arr_left, img_arr_right, tile_date_path, metadata, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, img_format)
-
+                """
                 
                 #Use multithreading to tile the numpy array
-                """
+                
                 num_cores = multiprocessing.cpu_count()
                 print("Generating {} tiles using {} threads...".format(len(double_inter_imgs), num_cores), end="")
                 pool = Pool(num_cores)
                 for i, (f1, f2, x, y, done_x, done_y) in enumerate(double_inter_imgs):
-                    pool.apply_async(TileUtils.generate_tile_between_two_images, args=(tile, img_arr_left, img_arr_right, tile_date_path, metadata, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y))
+                    pool.apply_async(TileUtils.generate_tile_between_two_images, args=(tile, img_arr_left, img_arr_right, tile_date_path, metadata, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, img_format, i))
                 pool.close()
                 pool.join()
-                """
+                
             
             # Tile in between four images  
             for quad_inter_imgs in tqdm(quad_inter_pixel_coords):
@@ -218,46 +219,56 @@ class TileUtils():
                 
                 src_BR = Image.open(img_path_BR)
                 img_arr_BR = np.array(src_BR)
-
+                """
                 for i, (f1, f2, f3, f4, x, y, done_x, done_y) in enumerate(quad_inter_imgs):
                     TileUtils.generate_tile_between_four_images(tile, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, tile_date_path, metadata, inter_metadata_TL.end_x - inter_metadata_TL.start_x, inter_metadata_TL.end_y - inter_metadata_TL.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata_TL.start_x, y - inter_metadata_TL.start_y, img_format)
-               
+               """
                 #Use multithreading to tile the numpy array
-                """
+                
                 num_cores = multiprocessing.cpu_count()
                 print("Generating {} tiles using {} threads...".format(len(quad_inter_imgs), num_cores), end="")
                 pool = Pool(num_cores)
 
                 for i, (f1, f2, f3, f4, x, y, done_x, done_y) in enumerate(quad_inter_imgs):
-                    pool.apply_async(TileUtils.generate_tile_between_four_images, args=(tile, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, tile_date_path, metadata, inter_metadata.end_x - inter_metadata.start_x, inter_metadata.end_y - inter_metadata.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata.start_x, y - inter_metadata.start_y))
+                    pool.apply_async(TileUtils.generate_tile_between_four_images, args=(tile, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, tile_date_path, metadata, inter_metadata.end_x - inter_metadata.start_x, inter_metadata.end_y - inter_metadata.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata.start_x, y - inter_metadata.start_y, img_format, i))
                 pool.close()
                 pool.join()
-                """
+                
             print("Finished tiling all the intermediates")
             shutil.rmtree(inter_dir)
         else: 
+
+            """ MAKE CHANGES TO HERE TO TEST ON non-ultra large images """
+
+
             # Open GeoTiff as numpy array in order to tile from the array
             src = Image.open(tiff_path)
             img_arr = np.array(src)
-
+            """
             for i, (x, y, done_x, done_y) in enumerate(pixel_coords):
                 TileUtils.generate_tile(tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, img_format)
-
-            #Use multithreading to tile the numpy array
             """
+            #Use multithreading to tile the numpy array
+            
             num_cores = multiprocessing.cpu_count()
             print("Generating {} tiles using {} threads...".format(len(pixel_coords), num_cores), end="")
-            pool = Pool(1)
+            pool = Pool(num_cores)
+            """
             for i, (x, y, done_x, done_y) in enumerate(pixel_coords):
-                pool.apply_async(TileUtils.generate_tile, args=(tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y))
-            
+                pool.apply_async(TileUtils.generate_tile, args=(tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, img_format, i))
+            """
+            multi = [pool.apply_async(TileUtils.generate_tile, args=(tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, img_format, i)) for i, (x, y, done_x, done_y) in enumerate(pixel_coords)]
+            f = [p.get() for p in multi]
+            final = sum(f)
+            print(final)
             pool.close()
             pool.join()
-            """
+            
             print("done!")
 
     @classmethod
-    def generate_tile(cls, tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, img_format, inter_x = None, inter_y = None):
+    def generate_tile(cls, tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, img_format, thread_num, inter_x = None, inter_y = None):
+        #print("Starting job #{}single".format(thread_num))
         # Find which MODIS grid location the current tile fits into
         output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
         output_path = tile_date_path + region.lat_lon_to_modis() + '/'
@@ -271,6 +282,7 @@ class TileUtils():
             real_x = inter_x
         if inter_y != None:
             real_y = inter_y
+
         # Tiling past boundaries 
         if tile.handling == Handling.include_incomplete_tiles and (done_x or done_y):
             incomplete_tile = img_arr[real_y:min(real_y + tile.height, HEIGHT), real_x:min(real_x + tile.width, WIDTH)]
@@ -281,10 +293,14 @@ class TileUtils():
         else: # Tiling within boundaries
             tile_array = img_arr[real_y:real_y+tile.height, real_x:real_x+tile.width]
             tile_img = Image.fromarray(tile_array)
-            tile_img.save(output_path + output_filename + "." + img_format)      
+            tile_img.save(output_path + output_filename + "." + img_format)
+        #print("\t Job #{}single: Finished saving tile - printing details \n \t Boundary image? {}".format(thread_num, done_x or done_y))
+        return 1
 
     @classmethod 
-    def generate_tile_between_two_images(cls, tile, img_arr_left, img_arr_right, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x, inter_y, img_format):
+    def generate_tile_between_two_images(cls, tile, img_arr_left, img_arr_right, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x, inter_y, img_format, thread_num):
+        #print("Starting job #{}double".format(thread_num))
+
         # Find which MODIS grid location the current tile fits into
         output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
         output_path = tile_date_path + region.lat_lon_to_modis() + '/'
@@ -311,9 +327,12 @@ class TileUtils():
         if leftover_x > 0 or leftover_y > 0:
             complete_img = Image.fromarray(empty_array)
             complete_img.save(output_path + output_filename + "." + img_format)
+        #print("\t Job #{}double: Finished saving tile".format(thread_num))
 
     @classmethod 
-    def generate_tile_between_four_images(cls, tile, img_arr_TL, img_arr_TR, img_arr_BL,img_arr_BR, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x, inter_y, img_format):
+    def generate_tile_between_four_images(cls, tile, img_arr_TL, img_arr_TR, img_arr_BL,img_arr_BR, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x, inter_y, img_format, thread_num):
+        #print("Starting job #{}quad".format(thread_num))
+
         # Find which MODIS grid location the current tile fits into
         output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
         output_path = tile_date_path + region.lat_lon_to_modis() + '/'
@@ -335,6 +354,7 @@ class TileUtils():
         empty_array[top_left_chunk.shape[0]:top_left_chunk.shape[0]+bot_right_chunk.shape[0], top_left_chunk.shape[1]:top_left_chunk.shape[1]+bot_right_chunk.shape[1]] = bot_right_chunk
         complete_img = Image.fromarray(empty_array)
         complete_img.save(output_path + output_filename + "." + img_format)
+        #print("\t Job #{}quad: Finished saving tile".format(thread_num))
 
     @classmethod
     def generate_tile_name_with_coordinates(cls, date, x, x_min, x_size, y, y_min, y_size, tile):
