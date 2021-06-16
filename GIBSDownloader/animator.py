@@ -51,4 +51,3 @@ class Animator():
             video.write(cv2.imread(img_path))
             os.remove(img_path)
         video.release()
-        

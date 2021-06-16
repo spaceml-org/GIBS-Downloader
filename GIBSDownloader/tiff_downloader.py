@@ -43,6 +43,3 @@ class TiffDownloader():
         with open(xml_filename, 'w') as xml_file:
             xml_file.write(xml_content)
         return xml_filename
-
-
-
