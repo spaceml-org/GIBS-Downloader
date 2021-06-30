@@ -126,6 +126,9 @@ def main():
     animate = args.animate
     name = args.name
     
+    if product is not None:
+        name = product.get_long_name()
+    
     name, res, img_format = DatasetSearcher.getProductInfo(name)
     
     # get the latitude, longitude values from the user input
