@@ -8,10 +8,11 @@ from multiprocessing.pool import ThreadPool as Pool
 
 import numpy as np
 from matplotlib import pyplot as plt
-from osgeo import gdal
 from PIL import Image
-from tqdm import tqdm 
+from tqdm import tqdm
 from bs4 import BeautifulSoup as bs
+import rasterio
+from rasterio.windows import Window
 
 from GIBSDownloader.tile import Tile
 from GIBSDownloader.handling import Handling
@@ -35,11 +36,11 @@ class TileUtils():
             bs_content = bs(content, "lxml")
             values = str(bs_content.find("geotransform")).replace("<geotransform> ", "").replace("</geotransform>","").split(",")
         return float(values[0]),float(values[1]),float(values[3]),float(values[5])
-        
+
     @classmethod
     def getTilingSplitCoords(cls, tile, WIDTH, HEIGHT):
         x_step, y_step = int(tile.width * (1 - tile.overlap)), int(tile.height * (1 - tile.overlap))
-        x = 0 
+        x = 0
         done_x = False
 
         # Check for valid tiling
@@ -51,7 +52,7 @@ class TileUtils():
             num_iterations = (WIDTH - tile.width * tile.overlap) // (tile.width * (1 - tile.overlap)) * (HEIGHT - tile.height * tile.overlap) // (tile.height * (1 -  tile.overlap))
         else:
             num_iterations = math.ceil((WIDTH - tile.width * tile.overlap) / (tile.width * (1 - tile.overlap))) * math.ceil((HEIGHT - tile.height * tile.overlap) / (tile.height * (1 -  tile.overlap)))
-        
+
         pixel_coords = []
 
         while(x < WIDTH and not done_x):
@@ -69,8 +70,8 @@ class TileUtils():
                     if tile.handling == Handling.discard_incomplete_tiles:
                         continue
                     if tile.handling == Handling.complete_tiles_shift:
-                        y = HEIGHT - tile.height 
-                    
+                        y = HEIGHT - tile.height
+
                 pixel_coords.append((x, y, done_x, done_y))
 
                 y += y_step
@@ -89,11 +90,11 @@ class TileUtils():
 
         # Use the following to get the coordinates of each tile
         x_min, x_size, y_min, y_size = TileUtils.getGeoTransform(tiff_path + ".aux.xml")
-       
+
         # Find the pixel coordinate extents of each tile to be generated
         pixel_coords = TileUtils.getTilingSplitCoords(tile, WIDTH, HEIGHT)
 
-        if ultra_large: 
+        if ultra_large:
             # Create the intermediate tiles
             inter_dir, img_width, img_height = TileUtils.img_to_intermediate_images(tiff_path, tile, WIDTH, HEIGHT, metadata.date, img_format)
 
@@ -111,7 +112,7 @@ class TileUtils():
                 inter_coords = [(inter_metadata.name, x,y, done_x, done_y) for (x,y, done_x, done_y) in pixel_coords if x >= inter_metadata.start_x and y >= inter_metadata.start_y and x + tile.width <= inter_metadata.end_x and y + tile.height <= inter_metadata.end_y]
                 if inter_coords:
                     single_inter_pixel_coords.append(inter_coords)
-            
+
             # Get tiling information for between two images
             for index, filename in enumerate(intermediate_files):
                 inter_metadata = IntermediateMetadata(filename)
@@ -131,7 +132,7 @@ class TileUtils():
                 quad_coords = [(filename, intermediate_files[index+1], intermediate_files[index + math.ceil(HEIGHT / img_height)], intermediate_files[index + math.ceil(HEIGHT / img_height) + 1], x, y, done_x, done_y) for (x,y,done_x,done_y) in pixel_coords if ((not done_x) and (not done_y) and x < inter_metadata.end_x and x + tile.width > inter_metadata.end_x and y < inter_metadata.end_y and y + tile.height > inter_metadata.end_y)]
                 if quad_coords:
                     quad_inter_pixel_coords.append(quad_coords)
-        
+
             print("Tiling intermediate images...")
 
             # Tile the complete images
@@ -157,7 +158,7 @@ class TileUtils():
                 pool.close()
                 pool.join()
                 """
-            
+
             # Tile in between two images
             for double_inter_imgs in tqdm(double_inter_pixel_coords):
                 filename_left = double_inter_imgs[0][0]
@@ -178,7 +179,7 @@ class TileUtils():
                 for i, (f1, f2, x, y, done_x, done_y) in enumerate(double_inter_imgs):
                     TileUtils.generate_tile_between_two_images(tile, img_arr_left, img_arr_right, tile_date_path, metadata, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, img_format)
 
-                
+
                 #Use multithreading to tile the numpy array
                 """
                 num_cores = multiprocessing.cpu_count()
@@ -189,13 +190,13 @@ class TileUtils():
                 pool.close()
                 pool.join()
                 """
-            
-            # Tile in between four images  
+
+            # Tile in between four images
             for quad_inter_imgs in tqdm(quad_inter_pixel_coords):
                 filename_TL = quad_inter_imgs[0][0]
                 filename_BL = quad_inter_imgs[0][1]
                 filename_TR = quad_inter_imgs[0][2]
-                filename_BR = quad_inter_imgs[0][3]       
+                filename_BR = quad_inter_imgs[0][3]
 
                 inter_metadata_TL = IntermediateMetadata(filename_TL)
                 inter_metadata_TR = IntermediateMetadata(filename_TR)
@@ -215,13 +216,13 @@ class TileUtils():
 
                 src_BL = Image.open(img_path_BL)
                 img_arr_BL = np.array(src_BL)
-                
+
                 src_BR = Image.open(img_path_BR)
                 img_arr_BR = np.array(src_BR)
 
                 for i, (f1, f2, f3, f4, x, y, done_x, done_y) in enumerate(quad_inter_imgs):
                     TileUtils.generate_tile_between_four_images(tile, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, tile_date_path, metadata, inter_metadata_TL.end_x - inter_metadata_TL.start_x, inter_metadata_TL.end_y - inter_metadata_TL.start_y, x_min, x_size, y_min, y_size, x, y, done_x, done_y, x - inter_metadata_TL.start_x, y - inter_metadata_TL.start_y, img_format)
-               
+
                 #Use multithreading to tile the numpy array
                 """
                 num_cores = multiprocessing.cpu_count()
@@ -235,7 +236,7 @@ class TileUtils():
                 """
             print("Finished tiling all the intermediates")
             shutil.rmtree(inter_dir)
-        else: 
+        else:
             # Open GeoTiff as numpy array in order to tile from the array
             src = Image.open(tiff_path)
             img_arr = np.array(src)
@@ -250,7 +251,7 @@ class TileUtils():
             pool = Pool(1)
             for i, (x, y, done_x, done_y) in enumerate(pixel_coords):
                 pool.apply_async(TileUtils.generate_tile, args=(tile, img_arr, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y))
-            
+
             pool.close()
             pool.join()
             """
@@ -271,7 +272,7 @@ class TileUtils():
             real_x = inter_x
         if inter_y != None:
             real_y = inter_y
-        # Tiling past boundaries 
+        # Tiling past boundaries
         if tile.handling == Handling.include_incomplete_tiles and (done_x or done_y):
             incomplete_tile = img_arr[real_y:min(real_y + tile.height, HEIGHT), real_x:min(real_x + tile.width, WIDTH)]
             empty_array = np.zeros((tile.height, tile.height, 3), dtype=np.uint8)
@@ -281,9 +282,9 @@ class TileUtils():
         else: # Tiling within boundaries
             tile_array = img_arr[real_y:real_y+tile.height, real_x:real_x+tile.width]
             tile_img = Image.fromarray(tile_array)
-            tile_img.save(output_path + output_filename + "." + img_format)      
+            tile_img.save(output_path + output_filename + "." + img_format)
 
-    @classmethod 
+    @classmethod
     def generate_tile_between_two_images(cls, tile, img_arr_left, img_arr_right, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x, inter_y, img_format):
         # Find which MODIS grid location the current tile fits into
         output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
@@ -312,7 +313,7 @@ class TileUtils():
             complete_img = Image.fromarray(empty_array)
             complete_img.save(output_path + output_filename + "." + img_format)
 
-    @classmethod 
+    @classmethod
     def generate_tile_between_four_images(cls, tile, img_arr_TL, img_arr_TR, img_arr_BL,img_arr_BR, tile_date_path, metadata, WIDTH, HEIGHT, x_min, x_size, y_min, y_size, x, y, done_x, done_y, inter_x, inter_y, img_format):
         # Find which MODIS grid location the current tile fits into
         output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, x, x_min, x_size, y, y_min, y_size, tile)
@@ -327,7 +328,7 @@ class TileUtils():
         top_right_chunk = img_arr_TR[inter_y:inter_y + tile.height, 0:leftover_x]
         bot_left_chunk = img_arr_BL[0:leftover_y, inter_x:inter_x + tile.height]
         bot_right_chunk = img_arr_BR[0:leftover_y, 0:leftover_x]
-    
+
         empty_array = np.zeros((tile.height, tile.height, 3), dtype=np.uint8)
         empty_array[0:top_left_chunk.shape[0], 0:top_left_chunk.shape[1]] = top_left_chunk
         empty_array[0:top_right_chunk.shape[0], top_left_chunk.shape[1]:top_left_chunk.shape[1]+top_right_chunk.shape[1]] = top_right_chunk
@@ -338,8 +339,8 @@ class TileUtils():
 
     @classmethod
     def generate_tile_name_with_coordinates(cls, date, x, x_min, x_size, y, y_min, y_size, tile):
-        tr_x = x * x_size + x_min 
-        tr_y = (y + tile.height) * y_size + y_min 
+        tr_x = x * x_size + x_min
+        tr_y = (y + tile.height) * y_size + y_min
         bl_x = (x + tile.width) * x_size + x_min
         bl_y = y * y_size + y_min
         filename = "{d}_{by},{bx},{ty},{tx}".format(d=date, ty=str(f'{round(bl_y, 4):08}'), tx=str(f'{round(bl_x, 4):09}'), by=str(f'{round(tr_y, 4):08}'), bx=str(f'{round(tr_x, 4):09}'))
@@ -352,7 +353,7 @@ class TileUtils():
 
         max_img_width = min(width, MAX_INTERMEDIATE_LENGTH)
         max_img_height = min(height, MAX_INTERMEDIATE_LENGTH)
-        
+
         # Find largest possible intermediate image sizes
         while ((max_img_width != width) and (((width / max_img_width) % 1) * max_img_width  < tile.width)):
             max_img_width -= 256
@@ -361,8 +362,8 @@ class TileUtils():
             max_img_height -= 256
 
         original_max_img_width = max_img_width   # Store these values in another variable so they can be returned
-        original_max_img_height = max_img_height  
-        
+        original_max_img_height = max_img_height
+
         print(width, height, max_img_width, max_img_height, width / max_img_width, height / max_img_height )
         # LOOP THOUGH AND GET THE DATA TO GENERATE THE INTERMEDIATE TILES
         width_current = 0
@@ -377,36 +378,49 @@ class TileUtils():
             done_height = False
             max_img_height = original_max_img_height
             while height_current < height and not done_height:
-                if height - height_current < max_img_height: 
+                if height - height_current < max_img_height:
                     max_img_height = height - height_current
                     done_height = True
                 intermediate_data.append((width_current, height_current, max_img_width, max_img_height, index))
                 height_current += max_img_height
                 index += 1
             width_current += max_img_width
-        
+
         # Sequentially generate intermediate tiles
         for (width_current, height_current, width_length, height_length, index) in intermediate_data:
             TileUtils.generate_intermediate_image(output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format)
-        
+
         # Utilize multithreading to generate the intermediate tiles
         """
         num_cores = multiprocessing.cpu_count()
         pool = Pool(num_cores)
-        
+
         print("Generating {} intermediate images using {} threads".format(len(intermediate_data), num_cores))
         for (width_current, height_current, width_length, height_length, index) in intermediate_data:
             pool.apply_async(TileUtils.generate_intermediate_image, args=(output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format))
-        
+
         pool.close()
         pool.join()
         """
 
         return output_dir, original_max_img_width, original_max_img_height
 
-    @classmethod 
+    @classmethod
     def generate_intermediate_image(cls, output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format):
         output_path = os.path.join(output_dir, "{}_{}_{}_{}_{}".format(str(index).zfill(5), width_current, height_current, width_current + width_length, height_current + height_length))
-        command = "gdal_translate -of {of} -srcwin --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {out_path}.{ext}".format(of=img_format.upper(), x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=tiff_path, out_path=output_path, ext=img_format)
-        os.system(command)
-        
+
+        with rasterio.Env(GDAL_PAM_ENABLED="NO"):
+            with rasterio.open(tiff_path) as src:
+                profile = src.profile
+                profile["driver"] = img_format
+                profile["width"] = width_length
+                profile["height"] = height_length
+
+                wind = Window(width_current, height_current, width_length, height_length)
+                if src.crs is not None:
+                    profile["transform"] = src.window_transform(wind)
+
+                with rasterio.open(f"{output_path}.{img_format}", "w", **profile) as dst_src:
+                    dst_src.write(
+                        src.read(window=wind)
+                    )

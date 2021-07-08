@@ -31,12 +31,12 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
         os.mkdir(xml_path)
 
     for date in dates:
-        tiff_output = TiffDownloader.generate_download_filename(originals_path, name.replace(" ","-"), date)
-        if not os.path.isfile(tiff_output + '.' + img_format):
+        tiff_output = TiffDownloader.generate_download_filename(originals_path, name.replace(" ","-"), date) + '.' + img_format
+        if not os.path.isfile(tiff_output):
             if logging:
                 print('Downloading:', date)
             TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res, img_format)
-            
+
     print("The specified region and set of dates have been downloaded")
 
 def tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format):
@@ -55,7 +55,7 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region, res, im
             os.mkdir(tile_date_path)
             print("Tiling day {} of {}".format(count + 1, len(files)))
             TileUtils.img_to_tiles(tiff_path, region, res, tile, tile_date_path, img_format)
-        else: 
+        else:
             print("Tiles for day {} have already been generated. Moving on to the next day".format(count + 1))
     print("The specified tiles have been generated")
 
@@ -64,16 +64,16 @@ def tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_form
     if os.path.isdir(tile_res_path):
             if not os.path.isdir(tfrecords_res_path):
                 os.mkdir(tfrecords_res_path)
-                if logging: 
+                if logging:
                     print("Writing files at:", tile_res_path, " to TFRecords")
                 TFRecordUtils.write_to_tfrecords(tile_res_path, tfrecords_res_path, name, img_format)
             else:
                 print("The specified TFRecords have already been written")
-    else: 
+    else:
         print("Unable to write to TFRecords due to nonexistent tile path")
 
 def remove_originals(originals_path, logging):
-    if logging: 
+    if logging:
         print("Removing original images...")
     shutil.rmtree(originals_path)
     os.mkdir(originals_path)
@@ -95,7 +95,7 @@ def main():
     parser.add_argument("start_date", metavar='start-date', type=str, help="starting date for downloads")
     parser.add_argument("end_date", metavar='end-date',type=str, help="ending date for downloads")
     parser.add_argument("bottom_left_coords", metavar='bottom-left-coords', type=str, help='coordinates for bottom left corner formatted "lat, lon"')
-    parser.add_argument("top_right_coords", metavar='top-right-coords', type=str, help='coordinates for top right corner formatted "lat, lon"')    
+    parser.add_argument("top_right_coords", metavar='top-right-coords', type=str, help='coordinates for top right corner formatted "lat, lon"')
     parser.add_argument("--output-path", default=os.getcwd(), type=str, help="path to output directory")
     parser.add_argument("--tile", default=False, type=bool, help="tiling flag")
     parser.add_argument("--tile-width", default=512, type=int, help="tiled image width")
@@ -109,7 +109,7 @@ def main():
     parser.add_argument("--keep-xml", default=False, type=bool, help="preserve the xml files generated to download images")
     parser.add_argument("--animate", default=False, type=bool, help="Generate a timelapse video of the downloaded region")
     parser.add_argument("--name", default="VIIRS_SNPP_CorrectedReflectance_TrueColor", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
-    
+
 
     # get the user input
     args = parser.parse_args()
@@ -125,14 +125,14 @@ def main():
     keep_xml = args.keep_xml
     animate = args.animate
     name = args.name
-    
+
     name, res, img_format = DatasetSearcher.getProductInfo(name)
-    
+
     # get the latitude, longitude values from the user input
     bl_coords = Coordinate([float(i) for i in args.bottom_left_coords.replace(" ","").split(',')])
     tr_coords = Coordinate([float(i) for i in args.top_right_coords.replace(" ", "").split(',')])
     region = Rectangle(bl_coords, tr_coords)
-    
+
     # check if inputted coordinates are valid
     if (bl_coords.x > tr_coords.x or bl_coords.y > tr_coords.y):
         raise argparse.ArgumentTypeError('Inputted coordinates are invalid: order should be (lower_latitude,left_longitude upper_latitude,right_longitude)')
@@ -158,10 +158,10 @@ def main():
 
     if write_tfrecords:
         tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_format)
-        
+
     if animate:
         generate_video(originals_path, region, dates, video_path, xml_path, name, res, img_format)
-    
+
     if rm_originals:
         remove_originals(originals_path, logging)
 
