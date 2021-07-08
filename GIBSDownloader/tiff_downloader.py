@@ -5,7 +5,6 @@ from GIBSDownloader.product import Product
 from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 
 import rasterio
-from rasterio.io import MemoryFile
 from rasterio.transform import from_bounds
 
 
@@ -72,6 +71,5 @@ class TiffDownloader():
         with open(xml_filename, 'w') as xml_file:
             xml_file.write(xml_content)
         return xml_filename
-
 
 
