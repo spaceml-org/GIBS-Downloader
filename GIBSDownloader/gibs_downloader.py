@@ -39,13 +39,12 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
             
     print("The specified region and set of dates have been downloaded")
 
-def tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format):
+def tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format, mp):
     if not os.path.isdir(tile_res_path):
         os.mkdir(tile_res_path)
 
     files = [f for f in os.listdir(originals_path) if f.endswith(img_format)]
     files.sort() # tile in chronological order
-    print(files)
 
     for count, filename in enumerate(files):
         tiff_path = os.path.join(originals_path, filename) # path to GeoTiff file
@@ -53,8 +52,8 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region, res, im
         tile_date_path = tile_res_path + metadata.date + '/' # path to tiles for specific date
         if not os.path.exists(tile_date_path):
             os.mkdir(tile_date_path)
-            print("Tiling day {} of {}".format(count + 1, len(files)))
-            TileUtils.img_to_tiles(tiff_path, region, res, tile, tile_date_path, img_format)
+            print("Tiling day {} of {}".format(count + 1, len(files)), flush=True)
+            TileUtils.img_to_tiles(tiff_path, region, res, tile, tile_date_path, img_format, mp)
         else: 
             print("Tiles for day {} have already been generated. Moving on to the next day".format(count + 1))
     print("The specified tiles have been generated")
@@ -109,6 +108,7 @@ def main():
     parser.add_argument("--keep-xml", default=False, type=bool, help="preserve the xml files generated to download images")
     parser.add_argument("--animate", default=False, type=bool, help="Generate a timelapse video of the downloaded region")
     parser.add_argument("--name", default="VIIRS_SNPP_CorrectedReflectance_TrueColor", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
+    parser.add_argument("--mp", default=False, type=bool, help="utilize multiprocessing to generate tiles")
     
 
     # get the user input
@@ -125,6 +125,7 @@ def main():
     keep_xml = args.keep_xml
     animate = args.animate
     name = args.name
+    mp = args.mp
     
     if product is not None:
         name = product.get_long_name()
@@ -157,7 +158,7 @@ def main():
     download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format)
 
     if tiling:
-        tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format)
+        tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format, mp)
 
     if write_tfrecords:
         tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_format)
