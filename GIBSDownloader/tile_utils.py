@@ -50,10 +50,12 @@ class TileUtils():
         
 
     """
-        Since we know how many iterations there will be in one call
+        Since we know how many iterations there will be in one call, we can use a form of blocking
         The steps to multiprocessing: 
-            1. divide the number of iterations by NUM_CORES
-            2. compute the starting (x,y) of the ith iteration
+            1. find the number of iterations per core - denote k
+            2. find how to compute the starting (x,y) of the ith iteration - denote (x,y)_i
+            3. for the ith core, call function such that the loop computes (x,y)_(i*k) to (x,y)_(i*k - 1)
+            4. start NUM_CORES jobs and parallelize the computation of the loop
     """
     @classmethod
     def getTilingSplitCoords(cls, metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path):
