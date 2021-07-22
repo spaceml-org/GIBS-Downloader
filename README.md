@@ -100,6 +100,9 @@ The download yields the following image:
 #### Generate Video
 * `--animate`: when set to true, a video will be generated from the images downloaded (defaults to false).
 
+#### Multiprocessing
+* `--mp`: when set to true, the tool takes advantage of parallelism and utilizes Python's multiprocessing library to speed up the generation of tiles (defaults to false). NOTE that this feature has not yet been tested on Windows.
+
 #### Additional features
 * `--output-path`: specify the path to where the images should be downloaded (defaults to the current working directory)
 * `--remove-originals`: when set to true, the original downloaded images will be deleted and only the tiled images and TFRecords will be saved (defaults to false).  
@@ -156,7 +159,7 @@ If you initially download a region for a range of dates without electing to tile
 To download the entire Earth, the coordinates you need to enter are: `"-90, -180" "90, 180"`. The GeoTiff file for one day of the entire Earth is approximately 38 GB.
 
 ### Upcoming Features
-* Tiling speed will be improved with multiprocessing
+* Installation process will be simplified
 
 ## Citation
 If you find GIBS Downloader useful in your research, please consider citing

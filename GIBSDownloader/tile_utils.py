@@ -3,9 +3,11 @@ import os
 import math
 import warnings
 import shutil
+import itertools
+from itertools import repeat
 import multiprocessing
 from multiprocessing import RawArray
-from multiprocessing.pool import ThreadPool as Pool
+from multiprocessing import Pool
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -33,6 +35,31 @@ def init_worker(X, X_shape, Y, Y_shape):
     arr_dict['Y'] = Y
     arr_dict['Y_shape'] = Y_shape
 
+def getTilingSplitCoordsMPTuple(metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path, num_rows, num_cols, index):
+    row = index // num_cols
+    col = index % num_cols
+
+    x_step, y_step = int(tile.width * (1 - tile.overlap)), int(tile.height * (1 - tile.overlap))
+
+    x = col * x_step
+    y = row * y_step
+    done_x, done_y = WIDTH - x < tile.width, HEIGHT - y < tile.height
+
+    if (done_x or done_y) and tile.handling == Handling.discard_incomplete_tiles:
+        return None
+
+    if done_x and tile.handling == Handling.complete_tiles_shift:
+        x = WIDTH - tile.width
+    if done_y and tile.handling == Handling.complete_tiles_shift:
+        y = HEIGHT - tile.height
+
+    path = TileUtils.generate_tile_directories(metadata, tile, x, y, geoTran_d, tile_date_path)
+    return (x,y, done_x, done_y, path)
+
+def getTilingSplitCoordsMP(args):
+    """ Wrapper function to unpack args """
+    (metadata, index) = args
+    return getTilingSplitCoordsMPTuple(*metadata, index)
 
 class TileUtils():
     @classmethod
@@ -48,15 +75,6 @@ class TileUtils():
             values = str(bs_content.find("geotransform")).replace("<geotransform> ", "").replace("</geotransform>","").split(",")
         return {"x_min":float(values[0]),"x_size": float(values[1]), "y_min":float(values[3]),"y_size": float(values[5])}
         
-
-    """
-        Since we know how many iterations there will be in one call, we can use a form of blocking
-        The steps to multiprocessing: 
-            1. find the number of iterations per core - denote k
-            2. find how to compute the starting (x,y) of the ith iteration - denote (x,y)_i
-            3. for the ith core, call function such that the loop computes (x,y)_(i*k) to (x,y)_(i*k - 1)
-            4. start NUM_CORES jobs and parallelize the computation of the loop
-    """
     @classmethod
     def getTilingSplitCoords(cls, metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path):
         x_step, y_step = int(tile.width * (1 - tile.overlap)), int(tile.height * (1 - tile.overlap))
@@ -150,12 +168,28 @@ class TileUtils():
 
         # Use the following dictionary to get the coordinates of each tile
         geoTran_d = TileUtils.getGeoTransform(tiff_path + ".aux.xml")
+
+        # Determine the number of tiles per row and column
+        if tile.handling == Handling.discard_incomplete_tiles:
+            num_rows = (HEIGHT - tile.height * tile.overlap) // (tile.height * (1 -  tile.overlap))
+            num_cols = (WIDTH - tile.width * tile.overlap) // (tile.width * (1 - tile.overlap))
+        else:
+            num_rows = math.ceil((HEIGHT - tile.height * tile.overlap) / (tile.height * (1 -  tile.overlap)))
+            num_cols = math.ceil((WIDTH - tile.width * tile.overlap) / (tile.width * (1 - tile.overlap)))
+
+        num_iterations = num_rows * num_cols
        
         # Find the pixel coordinate extents of each tile to be generated
-        pixel_coords = TileUtils.getTilingSplitCoords(metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path)
-
         if mp:
-            print("Generating {} tiles using {} threads...".format(len(pixel_coords), NUM_CORES), flush=True)
+            print("Gathering tiling information...", flush=True)
+            with Pool(processes=NUM_CORES) as pool:
+                args = zip(repeat((metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path, num_rows, num_cols)), list(range(num_iterations)))
+                pixel_coords = pool.map(getTilingSplitCoordsMP, args)
+        else:
+            pixel_coords = TileUtils.getTilingSplitCoords(metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path)
+        
+        if mp:
+            print("Generating {} tiles using {} processes...".format(len(pixel_coords), NUM_CORES), flush=True)
         else:
             print("Generating {} tiles sequentially...".format(len(pixel_coords)), flush=True)
 
@@ -190,7 +224,7 @@ class TileUtils():
 
                 
                 if mp:
-                    # Use multithreading to tile the numpy array
+                    # Use multiprocessing to tile the numpy array
                     with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, None, None)) as pool:
                         multi = [pool.apply_async(TileUtils.generate_tile, args=(tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format,), kwds={"inter_x":(x - inter_metadata.start_x), "inter_y":(y - inter_metadata.start_y)}) for (filename, x, y, done_x, done_y, path) in single_inter_imgs]
                         f = [p.get() for p in multi]
@@ -230,7 +264,7 @@ class TileUtils():
                 np.copyto(Y_np, img_arr_right) 
 
                 if mp:
-                    # Use multithreading to tile the numpy array
+                    # Use multiprocessing to tile the numpy array
                     with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, Y, Y_shape)) as pool:
                         multi = [pool.apply_async(TileUtils.generate_tile_between_two_images, args=(tile, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, path, img_format)) for (_, _, x, y, done_x, done_y, path) in double_inter_imgs]
                         f = [p.get() for p in multi]
@@ -291,7 +325,7 @@ class TileUtils():
             np.copyto(X_np, img_arr)
 
             if mp:
-                # Use multithreading to tile the numpy array
+                # Use multiprocessing to tile the numpy array
                 with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, None, None)) as pool:
                     multi = [pool.apply_async(TileUtils.generate_tile, args=(tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format)) for (x, y, done_x, done_y, path) in pixel_coords]
                     f = [p.get() for p in tqdm(multi)]
@@ -379,7 +413,10 @@ class TileUtils():
         output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, tile, x, y, geoTran_d)
         output_path = tile_date_path + region.lat_lon_to_modis() + '/'
         if not os.path.exists(output_path):
-            os.mkdir(output_path)
+            try:
+                os.mkdir(output_path)
+            except FileExistsError:
+                """ Ignore exception when parallel processes create the same directory """
         return os.path.join(output_path, output_filename)
         
     @classmethod
