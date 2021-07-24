@@ -61,7 +61,56 @@ def getTilingSplitCoordsMP(args):
     (metadata, index) = args
     return getTilingSplitCoordsTuple(*metadata, index)
 
-def processQuadsTuple(inter_dir, tile, img_format, quad_inter_imgs):
+def processDoublesTuple(t_width, t_height, inter_dir, img_format, double_inter_imgs):
+    filename_left = double_inter_imgs[0][0]
+    filename_right = double_inter_imgs[0][1]
+
+    inter_metadata_left = IntermediateMetadata(filename_left)
+    inter_metadata_right = IntermediateMetadata(filename_right)
+
+    img_path_left = os.path.join(inter_dir, filename_left)
+    img_path_right = os.path.join(inter_dir, filename_right)
+
+    src_left = Image.open(img_path_left)
+    img_arr_left = np.array(src_left)
+
+    src_right = Image.open(img_path_right)
+    img_arr_right = np.array(src_right)
+
+    """
+    if mp and len(double_inter_imgs) > NUM_CORES:
+        
+        # Create a shared array for the left image
+        X_shape = img_arr_left.shape
+        X = RawArray('B', X_shape[0] * X_shape[1] * X_shape[2])
+        X_np = np.frombuffer(X, dtype='uint8').reshape(X_shape) # Wrap shared array as numpy array
+        np.copyto(X_np, img_arr_left) # Copy image to the shared array
+
+        # Create a shared array for the right image as above
+        Y_shape = img_arr_right.shape
+        Y = RawArray('B', Y_shape[0] * Y_shape[1] * Y_shape[2])
+        Y_np = np.frombuffer(Y, dtype='uint8').reshape(Y_shape)
+        np.copyto(Y_np, img_arr_right)
+
+        # Use multiprocessing to tile the numpy array
+        with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, Y, Y_shape)) as pool:
+            multi = [pool.apply_async(TileUtils.generate_tile_between_two_images, args=(tile, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, path, img_format)) for (_, _, x, y, done_x, done_y, path) in double_inter_imgs]
+            f = [p.get() for p in multi]
+            pool.close()
+            pool.join()
+    else:
+    """
+    # Sequentially generate tiles
+    for _, _, x, y, done_x, done_y, path in double_inter_imgs:
+        TileUtils.generate_tile_between_two_images(t_width, t_height, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, path, img_format, img_arr_left=img_arr_left, img_arr_right=img_arr_right)
+    return 1
+
+def processDoublesMP(args):
+    """ Wrapper function to unpack args """
+    (metadata, double_inter_imgs) = args
+    return processDoublesTuple(*metadata, double_inter_imgs)
+
+def processQuadsTuple(t_width, t_height, inter_dir, img_format, quad_inter_imgs):
     filename_TL = quad_inter_imgs[0][0]
     filename_BL = quad_inter_imgs[0][1]
     filename_TR = quad_inter_imgs[0][2]
@@ -91,7 +140,7 @@ def processQuadsTuple(inter_dir, tile, img_format, quad_inter_imgs):
 
     # Sequentially generate the tiles between four images since overhead in allocating the four RawArrays is not worth it for the few tiles that lie between four images
     for _, _, _, _, x, y, done_x, done_y, path in quad_inter_imgs:
-        TileUtils.generate_tile_between_four_images(tile, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, inter_metadata_TL.end_x - inter_metadata_TL.start_x, inter_metadata_TL.end_y - inter_metadata_TL.start_y, x, y, done_x, done_y, x - inter_metadata_TL.start_x, y - inter_metadata_TL.start_y, path, img_format)
+        TileUtils.generate_tile_between_four_images(t_width, t_height, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, inter_metadata_TL.end_x - inter_metadata_TL.start_x, inter_metadata_TL.end_y - inter_metadata_TL.start_y, x, y, done_x, done_y, x - inter_metadata_TL.start_x, y - inter_metadata_TL.start_y, path, img_format)
     return 1
 
 
@@ -243,55 +292,23 @@ class TileUtils():
                         TileUtils.generate_tile(tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format, inter_x=(x - inter_metadata.start_x), inter_y=(y - inter_metadata.start_y), img_arr=img_arr)
                 
             # Tile in between two images
-            for double_inter_imgs in tqdm(intermediate_info[1]):
-                filename_left = double_inter_imgs[0][0]
-                filename_right = double_inter_imgs[0][1]
-
-                inter_metadata_left = IntermediateMetadata(filename_left)
-                inter_metadata_right = IntermediateMetadata(filename_right)
-
-                img_path_left = os.path.join(inter_dir, filename_left)
-                img_path_right = os.path.join(inter_dir, filename_right)
-
-                src_left = Image.open(img_path_left)
-                img_arr_left = np.array(src_left)
-
-                src_right = Image.open(img_path_right)
-                img_arr_right = np.array(src_right)
-
-                if mp:
-                    # Create a shared array for the left image
-                    X_shape = img_arr_left.shape
-                    X = RawArray('B', X_shape[0] * X_shape[1] * X_shape[2])
-                    X_np = np.frombuffer(X, dtype='uint8').reshape(X_shape) # Wrap shared array as numpy array
-                    np.copyto(X_np, img_arr_left) # Copy image to the shared array
-
-                    # Create a shared array for the right image as above
-                    Y_shape = img_arr_right.shape
-                    Y = RawArray('B', Y_shape[0] * Y_shape[1] * Y_shape[2])
-                    Y_np = np.frombuffer(Y, dtype='uint8').reshape(Y_shape)
-                    np.copyto(Y_np, img_arr_right)
-
-                    # Use multiprocessing to tile the numpy array
-                    with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, Y, Y_shape)) as pool:
-                        multi = [pool.apply_async(TileUtils.generate_tile_between_two_images, args=(tile, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, path, img_format)) for (_, _, x, y, done_x, done_y, path) in double_inter_imgs]
-                        f = [p.get() for p in multi]
-                        pool.close()
-                        pool.join()
-                else:
-                    # Sequentially generate tiles
-                    for _, _, x, y, done_x, done_y, path in double_inter_imgs:
-                        TileUtils.generate_tile_between_two_images(tile, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, path, img_format, img_arr_left=img_arr_left, img_arr_right=img_arr_right)
+            if mp:
+                with Pool(processes=NUM_CORES) as pool:
+                    args = zip(repeat((tile.width, tile.height, inter_dir, img_format)), intermediate_info[1])
+                    result = pool.map(processDoublesMP, args)
+            else:
+                for double_inter_imgs in tqdm(intermediate_info[1]):
+                    processDoublesTuple(tile.width, tile.height, inter_dir, img_format, double_inter_imgs)
                 
+            
             # Tile in between four images  CHANGE TO RUN THIS STEP IN PARALLEL
             if mp:
                 with Pool(processes=NUM_CORES) as pool:
-                    args = zip(repeat((tile, inter_dir, img_format)), intermediate_info[2])
+                    args = zip(repeat((tile.width, tile.height, inter_dir, img_format)), intermediate_info[2])
                     result = pool.map(processQuadsMP, args)
             else:
                 for quad_inter_imgs in tqdm(intermediate_info[2]):
-                    processQuadsTuple(quad_inter_imgs, inter_dir, tile, img_format)
-
+                    processQuadsTuple(tile.width, tile.height, inter_dir, img_format, quad_inter_imgs)
                                 
             shutil.rmtree(inter_dir)
         else: 
@@ -347,23 +364,23 @@ class TileUtils():
         return 1
 
     @classmethod 
-    def generate_tile_between_two_images(cls, tile, WIDTH, HEIGHT, x, y, done_x, done_y, inter_x, inter_y, path, img_format, img_arr_left=None, img_arr_right=None):
+    def generate_tile_between_two_images(cls, t_width, t_height, WIDTH, HEIGHT, x, y, done_x, done_y, inter_x, inter_y, path, img_format, img_arr_left=None, img_arr_right=None):
         if img_arr_left is None:
             img_arr_left = np.frombuffer(arr_dict['X'], dtype="uint8").reshape(arr_dict['X_shape'])
         if img_arr_right is None:
             img_arr_right = np.frombuffer(arr_dict['Y'], dtype="uint8").reshape(arr_dict['Y_shape'])
 
-        leftover_x = tile.width - (WIDTH - inter_x)
-        leftover_y = tile.height - (HEIGHT - inter_y)
+        leftover_x = t_width - (WIDTH - inter_x)
+        leftover_y = t_height - (HEIGHT - inter_y)
 
-        left_chunk = img_arr_left[inter_y:min(inter_y + tile.height, HEIGHT), inter_x:min(inter_x + tile.width, WIDTH)]
+        left_chunk = img_arr_left[inter_y:min(inter_y + t_height, HEIGHT), inter_x:min(inter_x + t_width, WIDTH)]
 
         if leftover_x > 0:
-            right_chunk = img_arr_right[inter_y:inter_y + tile.height, 0:leftover_x]
+            right_chunk = img_arr_right[inter_y:inter_y + t_height, 0:leftover_x]
         elif leftover_y > 0:
-            right_chunk = img_arr_right[0:leftover_y, inter_x:inter_x + tile.width]
+            right_chunk = img_arr_right[0:leftover_y, inter_x:inter_x + t_width]
 
-        empty_array = np.zeros((tile.height, tile.height, 3), dtype=np.uint8)
+        empty_array = np.zeros((t_height, t_height, 3), dtype=np.uint8)
         empty_array[0:left_chunk.shape[0], 0:left_chunk.shape[1]] = left_chunk
 
         if leftover_x > 0:
@@ -375,16 +392,16 @@ class TileUtils():
             complete_img.save(path + "." + img_format)
 
     @classmethod 
-    def generate_tile_between_four_images(cls, tile, img_arr_TL, img_arr_TR, img_arr_BL,img_arr_BR, WIDTH, HEIGHT, x, y, done_x, done_y, inter_x, inter_y, path, img_format):
-        leftover_x = tile.width - (WIDTH - inter_x)
-        leftover_y = tile.height - (HEIGHT - inter_y)
+    def generate_tile_between_four_images(cls, t_width, t_height, img_arr_TL, img_arr_TR, img_arr_BL,img_arr_BR, WIDTH, HEIGHT, x, y, done_x, done_y, inter_x, inter_y, path, img_format):
+        leftover_x = t_width - (WIDTH - inter_x)
+        leftover_y = t_height - (HEIGHT - inter_y)
 
-        top_left_chunk = img_arr_TL[inter_y:min(inter_y + tile.height, HEIGHT), inter_x:min(inter_x + tile.width, WIDTH)]
-        top_right_chunk = img_arr_TR[inter_y:inter_y + tile.height, 0:leftover_x]
-        bot_left_chunk = img_arr_BL[0:leftover_y, inter_x:inter_x + tile.height]
+        top_left_chunk = img_arr_TL[inter_y:min(inter_y + t_height, HEIGHT), inter_x:min(inter_x + t_width, WIDTH)]
+        top_right_chunk = img_arr_TR[inter_y:inter_y + t_height, 0:leftover_x]
+        bot_left_chunk = img_arr_BL[0:leftover_y, inter_x:inter_x + t_height]
         bot_right_chunk = img_arr_BR[0:leftover_y, 0:leftover_x]
     
-        empty_array = np.zeros((tile.height, tile.height, 3), dtype=np.uint8)
+        empty_array = np.zeros((t_height, t_height, 3), dtype=np.uint8)
         empty_array[0:top_left_chunk.shape[0], 0:top_left_chunk.shape[1]] = top_left_chunk
         empty_array[0:top_right_chunk.shape[0], top_left_chunk.shape[1]:top_left_chunk.shape[1]+top_right_chunk.shape[1]] = top_right_chunk
         empty_array[top_left_chunk.shape[0]:top_left_chunk.shape[0]+bot_left_chunk.shape[0], 0:bot_left_chunk.shape[1]] = bot_left_chunk
