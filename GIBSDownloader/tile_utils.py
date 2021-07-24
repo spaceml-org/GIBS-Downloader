@@ -35,7 +35,7 @@ def init_worker(X, X_shape, Y, Y_shape):
     arr_dict['Y'] = Y
     arr_dict['Y_shape'] = Y_shape
 
-def getTilingSplitCoordsMPTuple(metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path, num_rows, num_cols, index):
+def getTilingSplitCoordsTuple(metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path, num_rows, num_cols, index):
     row = index // num_cols
     col = index % num_cols
 
@@ -59,7 +59,46 @@ def getTilingSplitCoordsMPTuple(metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_d
 def getTilingSplitCoordsMP(args):
     """ Wrapper function to unpack args """
     (metadata, index) = args
-    return getTilingSplitCoordsMPTuple(*metadata, index)
+    return getTilingSplitCoordsTuple(*metadata, index)
+
+def processQuadsTuple(inter_dir, tile, img_format, quad_inter_imgs):
+    filename_TL = quad_inter_imgs[0][0]
+    filename_BL = quad_inter_imgs[0][1]
+    filename_TR = quad_inter_imgs[0][2]
+    filename_BR = quad_inter_imgs[0][3]       
+
+    inter_metadata_TL = IntermediateMetadata(filename_TL)
+    inter_metadata_TR = IntermediateMetadata(filename_TR)
+    inter_metadata_BL = IntermediateMetadata(filename_BL)
+    inter_metadata_BR = IntermediateMetadata(filename_BR)
+
+    img_path_TL = os.path.join(inter_dir, filename_TL)
+    img_path_TR = os.path.join(inter_dir, filename_TR)
+    img_path_BL = os.path.join(inter_dir, filename_BL)
+    img_path_BR = os.path.join(inter_dir, filename_BR)
+
+    src_TL = Image.open(img_path_TL)
+    img_arr_TL = np.array(src_TL)
+
+    src_TR = Image.open(img_path_TR)
+    img_arr_TR = np.array(src_TR)
+
+    src_BL = Image.open(img_path_BL)
+    img_arr_BL = np.array(src_BL)
+    
+    src_BR = Image.open(img_path_BR)
+    img_arr_BR = np.array(src_BR)
+
+    # Sequentially generate the tiles between four images since overhead in allocating the four RawArrays is not worth it for the few tiles that lie between four images
+    for _, _, _, _, x, y, done_x, done_y, path in quad_inter_imgs:
+        TileUtils.generate_tile_between_four_images(tile, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, inter_metadata_TL.end_x - inter_metadata_TL.start_x, inter_metadata_TL.end_y - inter_metadata_TL.start_y, x, y, done_x, done_y, x - inter_metadata_TL.start_x, y - inter_metadata_TL.start_y, path, img_format)
+    return 1
+
+
+def processQuadsMP(args):
+    """ Wrapper function to unpack args """
+    (metadata, quad_inter_imgs) = args
+    return processQuadsTuple(*metadata, quad_inter_imgs)
 
 class TileUtils():
     @classmethod
@@ -80,48 +119,6 @@ class TileUtils():
                 values = str(bs_content.find("geotransform")).replace("<geotransform> ", "").replace("</geotransform>","").split(",")
                 geoTran_d = {"x_min":float(values[0]),"x_size": float(values[1]), "y_min":float(values[3]),"y_size": float(values[5])}
         return geoTran_d
-        
-    @classmethod
-    def getTilingSplitCoords(cls, metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path):
-        x_step, y_step = int(tile.width * (1 - tile.overlap)), int(tile.height * (1 - tile.overlap))
-        x = 0 
-        done_x = False
-
-        # Check for valid tiling
-        if (tile.width > WIDTH or tile.height > HEIGHT):
-            raise argparse.ArgumentTypeError("Tiling dimensions greater than image dimensions")
-
-        # Calculate the number of tiles to be generated
-        if tile.handling == Handling.discard_incomplete_tiles:
-            num_iterations = (WIDTH - tile.width * tile.overlap) // (tile.width * (1 - tile.overlap)) * (HEIGHT - tile.height * tile.overlap) // (tile.height * (1 -  tile.overlap))
-        else:
-            num_iterations = math.ceil((WIDTH - tile.width * tile.overlap) / (tile.width * (1 - tile.overlap))) * math.ceil((HEIGHT - tile.height * tile.overlap) / (tile.height * (1 -  tile.overlap)))
-        
-        pixel_coords = []
-
-        while(x < WIDTH and not done_x):
-            if(WIDTH - x < tile.width):
-                done_x = True
-                if tile.handling == Handling.discard_incomplete_tiles:
-                    continue
-                if tile.handling == Handling.complete_tiles_shift:
-                    x = WIDTH - tile.width
-            done_y = False
-            y = 0
-            while (y < HEIGHT and not done_y):
-                if(HEIGHT - y < tile.height):
-                    done_y = True
-                    if tile.handling == Handling.discard_incomplete_tiles:
-                        continue
-                    if tile.handling == Handling.complete_tiles_shift:
-                        y = HEIGHT - tile.height 
-
-                path = TileUtils.generate_tile_directories(metadata, tile, x, y, geoTran_d, tile_date_path)
-                pixel_coords.append((x, y, done_x, done_y, path))
-
-                y += y_step
-            x += x_step
-        return pixel_coords
 
     @classmethod
     def getIntermediateTilingInfo(cls, tile, pixel_coords, WIDTH, HEIGHT, img_width, img_height, intermediate_files):
@@ -135,12 +132,12 @@ class TileUtils():
         for index,filename in enumerate(intermediate_files):
             inter_metadata = IntermediateMetadata(filename)
 
-            # Get tiling information for tiles in single images
+            # Get tiling information for tiles in single images (i.e. find if a tile's (x,y) coordinates are included in the intermediate file)
             inter_coords = [(inter_metadata.name, x,y, done_x, done_y, path) for (x,y, done_x, done_y, path) in pixel_coords if x >= inter_metadata.start_x and y >= inter_metadata.start_y and x + tile.width <= inter_metadata.end_x and y + tile.height <= inter_metadata.end_y]
             if inter_coords:
                 single_inter_pixel_coords.append(inter_coords)
 
-            # Get tiling information for tiles between two images
+            # Get tiling information for tiles between two images (tile spans two intermediate images)
             double_coords_raw = [(x,y, done_x, done_y, path) for (x, y, done_x, done_y, path) in pixel_coords if (x < inter_metadata.end_x and x + tile.width > inter_metadata.end_x and y >= inter_metadata.start_y and y + tile.height <= inter_metadata.end_y) or (y < inter_metadata.end_y and y + tile.height > inter_metadata.end_y and x >= inter_metadata.start_x and x + tile.width <= inter_metadata.end_x)]
             if double_coords_raw:
                 double_coords_LR = [(filename, intermediate_files[index + math.ceil(HEIGHT / img_height)], x, y, done_x, done_y, path) for (x, y, done_x, done_y, path) in double_coords_raw if x < inter_metadata.end_x and x + tile.width > inter_metadata.end_x]
@@ -150,7 +147,7 @@ class TileUtils():
                 if double_coords_AB:
                     double_inter_pixel_coords.append(double_coords_AB)
             
-            # Get tiling information for tiles between four images
+            # Get tiling information for tiles between four images (tile spans four intermediate images)
             quad_coords = [(filename, intermediate_files[index+1], intermediate_files[index + math.ceil(HEIGHT / img_height)], intermediate_files[index + math.ceil(HEIGHT / img_height) + 1], x, y, done_x, done_y, path) for (x,y,done_x,done_y, path) in pixel_coords if ((not done_x) and (not done_y) and x < inter_metadata.end_x and x + tile.width > inter_metadata.end_x and y < inter_metadata.end_y and y + tile.height > inter_metadata.end_y)]
             if quad_coords:
                 quad_inter_pixel_coords.append(quad_coords)
@@ -175,6 +172,10 @@ class TileUtils():
         # Use the following dictionary to get the coordinates of each tile
         geoTran_d = TileUtils.getGeoTransform(tiff_path)
 
+        # Check for valid tiling dimensions
+        if (tile.width > WIDTH or tile.height > HEIGHT):
+            raise argparse.ArgumentTypeError("Tiling dimensions greater than image dimensions")
+
         # Determine the number of tiles per row and column
         if tile.handling == Handling.discard_incomplete_tiles:
             num_rows = (HEIGHT - tile.height * tile.overlap) // (tile.height * (1 -  tile.overlap))
@@ -186,13 +187,15 @@ class TileUtils():
         num_iterations = num_rows * num_cols
        
         # Find the pixel coordinate extents of each tile to be generated
+        print("Gathering tiling information...", flush=True)
         if mp:
-            print("Gathering tiling information...", flush=True)
             with Pool(processes=NUM_CORES) as pool:
                 args = zip(repeat((metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path, num_rows, num_cols)), list(range(num_iterations)))
                 pixel_coords = pool.map(getTilingSplitCoordsMP, args)
         else:
-            pixel_coords = TileUtils.getTilingSplitCoords(metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path)
+            pixel_coords = []
+            for index in range(num_iterations):
+                pixel_coords.append(getTilingSplitCoordsTuple(tile, WIDTH, HEIGHT, geoTran_d, tile_date_path, num_rows, num_cols, index))
         
         if mp:
             print("Generating {} tiles using {} processes...".format(len(pixel_coords), NUM_CORES), flush=True)
@@ -256,7 +259,7 @@ class TileUtils():
                 src_right = Image.open(img_path_right)
                 img_arr_right = np.array(src_right)
 
-                if mp and len(double_inter_imgs) > NUM_CORES:
+                if mp:
                     # Create a shared array for the left image
                     X_shape = img_arr_left.shape
                     X = RawArray('B', X_shape[0] * X_shape[1] * X_shape[2])
@@ -280,39 +283,16 @@ class TileUtils():
                     for _, _, x, y, done_x, done_y, path in double_inter_imgs:
                         TileUtils.generate_tile_between_two_images(tile, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, path, img_format, img_arr_left=img_arr_left, img_arr_right=img_arr_right)
                 
-            # Tile in between four images  
-            for quad_inter_imgs in tqdm(intermediate_info[2]):
-                filename_TL = quad_inter_imgs[0][0]
-                filename_BL = quad_inter_imgs[0][1]
-                filename_TR = quad_inter_imgs[0][2]
-                filename_BR = quad_inter_imgs[0][3]       
+            # Tile in between four images  CHANGE TO RUN THIS STEP IN PARALLEL
+            if mp:
+                with Pool(processes=NUM_CORES) as pool:
+                    args = zip(repeat((tile, inter_dir, img_format)), intermediate_info[2])
+                    result = pool.map(processQuadsMP, args)
+            else:
+                for quad_inter_imgs in tqdm(intermediate_info[2]):
+                    processQuadsTuple(quad_inter_imgs, inter_dir, tile, img_format)
 
-                inter_metadata_TL = IntermediateMetadata(filename_TL)
-                inter_metadata_TR = IntermediateMetadata(filename_TR)
-                inter_metadata_BL = IntermediateMetadata(filename_BL)
-                inter_metadata_BR = IntermediateMetadata(filename_BR)
-
-                img_path_TL = os.path.join(inter_dir, filename_TL)
-                img_path_TR = os.path.join(inter_dir, filename_TR)
-                img_path_BL = os.path.join(inter_dir, filename_BL)
-                img_path_BR = os.path.join(inter_dir, filename_BR)
-
-                src_TL = Image.open(img_path_TL)
-                img_arr_TL = np.array(src_TL)
-
-                src_TR = Image.open(img_path_TR)
-                img_arr_TR = np.array(src_TR)
-
-                src_BL = Image.open(img_path_BL)
-                img_arr_BL = np.array(src_BL)
-                
-                src_BR = Image.open(img_path_BR)
-                img_arr_BR = np.array(src_BR)
-
-                # Sequentially generate the tiles between four images since overhead in allocating the four RawArrays is not worth it for the few tiles that lie between four images
-                for _, _, _, _, x, y, done_x, done_y, path in quad_inter_imgs:
-                    TileUtils.generate_tile_between_four_images(tile, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, inter_metadata_TL.end_x - inter_metadata_TL.start_x, inter_metadata_TL.end_y - inter_metadata_TL.start_y, x, y, done_x, done_y, x - inter_metadata_TL.start_x, y - inter_metadata_TL.start_y, path, img_format)
-                
+                                
             shutil.rmtree(inter_dir)
         else: 
             # Open image as a numpy array in order to tile from the array
