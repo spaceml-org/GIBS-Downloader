@@ -262,6 +262,7 @@ class TileUtils():
             intermediate_info = TileUtils.getIntermediateTilingInfo(tile, pixel_coords, WIDTH, HEIGHT, img_width, img_height, intermediate_files)
 
             # Tile the complete images
+            print("Starting to tile from complete images")
             for single_inter_imgs in tqdm(intermediate_info[0]):
                 filename = single_inter_imgs[0][0]
                 inter_metadata = IntermediateMetadata(filename)
@@ -292,6 +293,7 @@ class TileUtils():
                         TileUtils.generate_tile(tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format, inter_x=(x - inter_metadata.start_x), inter_y=(y - inter_metadata.start_y), img_arr=img_arr)
                 
             # Tile in between two images
+            print("Starting to tile between two images")
             if mp:
                 with Pool(processes=NUM_CORES) as pool:
                     args = zip(repeat((tile.width, tile.height, inter_dir, img_format)), intermediate_info[1])
@@ -302,6 +304,7 @@ class TileUtils():
                 
             
             # Tile in between four images  CHANGE TO RUN THIS STEP IN PARALLEL
+            print("Starting to tile between four images")
             if mp:
                 with Pool(processes=NUM_CORES) as pool:
                     args = zip(repeat((tile.width, tile.height, inter_dir, img_format)), intermediate_info[2])
