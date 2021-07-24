@@ -64,16 +64,22 @@ def getTilingSplitCoordsMP(args):
 class TileUtils():
     @classmethod
     def getGeoTransform(cls, path):
+        filename, ext = os.path.splitext(path)
         content = []
-        # Read the XML file
-        with open(path, "r") as f:
-            # Read each line in the file, readlines() returns a list of lines
-            content = f.readlines()
-            # Combine the lines in the list into a string
-            content = "".join(content)
-            bs_content = bs(content, "lxml")
-            values = str(bs_content.find("geotransform")).replace("<geotransform> ", "").replace("</geotransform>","").split(",")
-        return {"x_min":float(values[0]),"x_size": float(values[1]), "y_min":float(values[3]),"y_size": float(values[5])}
+        if ext == ".tif": # Read the tfw file
+            with open(filename + ".tfw", "r") as f:
+                # Read each line in the file, readlines() returns a list of lines
+                content = f.readlines()
+                geoTran_d = {"x_min":float(content[4]),"x_size": float(content[0]), "y_min":float(content[5]),"y_size": float(content[3])}
+        else: # Read the auxiliary XML file
+            with open(path + ".aux.xml", "r") as f:
+                content = f.readlines()
+                # Combine the lines in the list into a string
+                content = "".join(content)
+                bs_content = bs(content, "lxml")
+                values = str(bs_content.find("geotransform")).replace("<geotransform> ", "").replace("</geotransform>","").split(",")
+                geoTran_d = {"x_min":float(values[0]),"x_size": float(values[1]), "y_min":float(values[3]),"y_size": float(values[5])}
+        return geoTran_d
         
     @classmethod
     def getTilingSplitCoords(cls, metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path):
@@ -167,7 +173,7 @@ class TileUtils():
             ultra_large = True
 
         # Use the following dictionary to get the coordinates of each tile
-        geoTran_d = TileUtils.getGeoTransform(tiff_path + ".aux.xml")
+        geoTran_d = TileUtils.getGeoTransform(tiff_path)
 
         # Determine the number of tiles per row and column
         if tile.handling == Handling.discard_incomplete_tiles:
@@ -212,18 +218,17 @@ class TileUtils():
                 src = Image.open(img_path)
                 img_arr = np.array(src)
 
-                # Create a shared array
-                X_shape = img_arr.shape
-                X = RawArray('B', X_shape[0] * X_shape[1] * X_shape[2])
-
-                # Wrap shared array as numpy array
-                X_np = np.frombuffer(X, dtype='uint8').reshape(X_shape)
-
-                # Copy image to the shared array
-                np.copyto(X_np, img_arr)
-
-                
                 if mp:
+                     # Create a shared array
+                    X_shape = img_arr.shape
+                    X = RawArray('B', X_shape[0] * X_shape[1] * X_shape[2])
+
+                    # Wrap shared array as numpy array
+                    X_np = np.frombuffer(X, dtype='uint8').reshape(X_shape)
+
+                    # Copy image to the shared array
+                    np.copyto(X_np, img_arr)
+                    
                     # Use multiprocessing to tile the numpy array
                     with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, None, None)) as pool:
                         multi = [pool.apply_async(TileUtils.generate_tile, args=(tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format,), kwds={"inter_x":(x - inter_metadata.start_x), "inter_y":(y - inter_metadata.start_y)}) for (filename, x, y, done_x, done_y, path) in single_inter_imgs]
@@ -251,19 +256,19 @@ class TileUtils():
                 src_right = Image.open(img_path_right)
                 img_arr_right = np.array(src_right)
 
-                # Create a shared array for the left image
-                X_shape = img_arr_left.shape
-                X = RawArray('B', X_shape[0] * X_shape[1] * X_shape[2])
-                X_np = np.frombuffer(X, dtype='uint8').reshape(X_shape) # Wrap shared array as numpy array
-                np.copyto(X_np, img_arr_left) # Copy image to the shared array
+                if mp and len(double_inter_imgs) > NUM_CORES:
+                    # Create a shared array for the left image
+                    X_shape = img_arr_left.shape
+                    X = RawArray('B', X_shape[0] * X_shape[1] * X_shape[2])
+                    X_np = np.frombuffer(X, dtype='uint8').reshape(X_shape) # Wrap shared array as numpy array
+                    np.copyto(X_np, img_arr_left) # Copy image to the shared array
 
-                # Create a shared array for the right image as above
-                Y_shape = img_arr_right.shape
-                Y = RawArray('B', Y_shape[0] * Y_shape[1] * Y_shape[2])
-                Y_np = np.frombuffer(Y, dtype='uint8').reshape(Y_shape)
-                np.copyto(Y_np, img_arr_right) 
+                    # Create a shared array for the right image as above
+                    Y_shape = img_arr_right.shape
+                    Y = RawArray('B', Y_shape[0] * Y_shape[1] * Y_shape[2])
+                    Y_np = np.frombuffer(Y, dtype='uint8').reshape(Y_shape)
+                    np.copyto(Y_np, img_arr_right)
 
-                if mp:
                     # Use multiprocessing to tile the numpy array
                     with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, Y, Y_shape)) as pool:
                         multi = [pool.apply_async(TileUtils.generate_tile_between_two_images, args=(tile, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, path, img_format)) for (_, _, x, y, done_x, done_y, path) in double_inter_imgs]
@@ -314,17 +319,16 @@ class TileUtils():
             src = Image.open(tiff_path)
             img_arr = np.array(src)
 
-            # Create a shared array
-            X_shape = img_arr.shape
-            X = RawArray('B', X_shape[0] * X_shape[1] * X_shape[2])
-
-            # Wrap shared array as numpy array
-            X_np = np.frombuffer(X, dtype='uint8').reshape(X_shape)
-
-            # Copy image to the shared array
-            np.copyto(X_np, img_arr)
-
             if mp:
+                # Create a shared array
+                X_shape = img_arr.shape
+                X = RawArray('B', X_shape[0] * X_shape[1] * X_shape[2])
+
+                # Wrap shared array as numpy array
+                X_np = np.frombuffer(X, dtype='uint8').reshape(X_shape)
+
+                # Copy image to the shared array
+                np.copyto(X_np, img_arr)
                 # Use multiprocessing to tile the numpy array
                 with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, None, None)) as pool:
                     multi = [pool.apply_async(TileUtils.generate_tile, args=(tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format)) for (x, y, done_x, done_y, path) in pixel_coords]

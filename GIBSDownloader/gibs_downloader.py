@@ -16,11 +16,17 @@ from GIBSDownloader.file_metadata import TiffMetadata
 from GIBSDownloader.animator import Animator
 from GIBSDownloader.dataset_searcher import DatasetSearcher
 
+MAX_JPEG_SIZE = 65500
+
 def generate_download_path(start_date, end_date, bl_coords, output, name):
     base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=name.replace(" ","-"), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
     return os.path.join(output, base)
 
 def download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format):
+    """ 
+        @returns img_format in case an image dimension exceeds the max 
+        JPEG size limit, and a GeoTiff needs to be downloaded instead of a JPEG 
+    """
     if not os.path.isdir(download_path):
         os.mkdir(download_path)
         os.mkdir(originals_path)
@@ -30,20 +36,25 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
     if not os.path.isdir(xml_path):
         os.mkdir(xml_path)
 
+    width, height = region.calculate_width_height(res)
+    if width > MAX_JPEG_SIZE or height > MAX_JPEG_SIZE:
+        img_format = 'tif'
+
     for date in dates:
         tiff_output = TiffDownloader.generate_download_filename(originals_path, name.replace(" ","-"), date)
         if not os.path.isfile(tiff_output + '.' + img_format):
             if logging:
                 print('Downloading:', date)
             TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res, img_format)
+    return img_format
             
     print("The specified region and set of dates have been downloaded")
 
-def tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format, mp):
+def tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format, mp, ext=None):
     if not os.path.isdir(tile_res_path):
         os.mkdir(tile_res_path)
 
-    files = [f for f in os.listdir(originals_path) if f.endswith(img_format)]
+    files = [f for f in os.listdir(originals_path) if f.endswith(ext)]
     files.sort() # tile in chronological order
 
     for count, filename in enumerate(files):
@@ -155,10 +166,10 @@ def main():
     # get range of dates
     dates = TiffDownloader.get_dates_range(start_date, end_date)
 
-    download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format)
+    img_format_cmd = download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format)
 
     if tiling:
-        tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format, mp)
+        tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format, mp, ext=img_format_cmd)
 
     if write_tfrecords:
         tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_format)
