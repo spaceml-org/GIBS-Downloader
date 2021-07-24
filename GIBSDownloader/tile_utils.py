@@ -230,7 +230,7 @@ class TileUtils():
 
         if ultra_large: 
             # Create the intermediate tiles
-            inter_dir, img_width, img_height = TileUtils.img_to_intermediate_images(tiff_path, tile, WIDTH, HEIGHT, metadata.date, img_format, mp)
+            inter_dir, img_width, img_height = TileUtils.img_to_intermediate_images(tiff_path, tile, WIDTH, HEIGHT, metadata.date, img_format)
 
             # Add each coordinate to its proper list
             intermediate_files = [f for f in os.listdir(inter_dir) if f.endswith(img_format)]
@@ -410,7 +410,7 @@ class TileUtils():
         return filename, Rectangle(Coordinate((bl_y, bl_x)), Coordinate((tr_y, tr_x)))
 
     @classmethod
-    def img_to_intermediate_images(cls, tiff_path, tile, width, height, date, img_format, mp):
+    def img_to_intermediate_images(cls, tiff_path, tile, width, height, date, img_format):
         output_dir = os.path.join(os.path.dirname(tiff_path), 'inter_{}'.format(date))
         os.mkdir(output_dir)
 
@@ -447,26 +447,15 @@ class TileUtils():
                 height_current += max_img_height
                 index += 1
             width_current += max_img_width
-        print("\tCreating intermediate images...",end="",flush=True)
-        if mp:
-            with Pool(processes=NUM_CORES) as pool:
-                multi = [pool.apply_async(TileUtils.generate_intermediate_image, args=(output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format, mp)) for (width_current, height_current, width_length, height_length, index) in intermediate_data]
-                f = [p.get() for p in multi]
-                pool.close()
-                pool.join()
-        else:
-            for (width_current, height_current, width_length, height_length, index) in intermediate_data:
-                TileUtils.generate_intermediate_image(output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format, mp)
-        print("done!")
+        print("\tCreating intermediate images")
+        for (width_current, height_current, width_length, height_length, index) in tqdm(intermediate_data):
+            TileUtils.generate_intermediate_image(output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format)
         return output_dir, original_max_img_width, original_max_img_height
 
     @classmethod 
-    def generate_intermediate_image(cls, output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format, mp):
+    def generate_intermediate_image(cls, output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format):
         output_path = os.path.join(output_dir, "{}_{}_{}_{}_{}".format(str(index).zfill(5), width_current, height_current, width_current + width_length, height_current + height_length))
         output_log_path = os.path.join(output_dir, "logs.txt")
         command = "gdal_translate -of {of} -srcwin --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {out_path}.{ext}".format(of=img_format.upper(), x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=tiff_path, out_path=output_path, ext=img_format)
-        if mp:
-            os.system("{} > {}".format(command, output_log_path))
-        else:
-            os.system(command)
+        os.system("{} > {}".format(command, output_log_path))
         
