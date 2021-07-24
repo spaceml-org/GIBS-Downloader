@@ -77,29 +77,6 @@ def processDoublesTuple(t_width, t_height, inter_dir, img_format, double_inter_i
     src_right = Image.open(img_path_right)
     img_arr_right = np.array(src_right)
 
-    """
-    if mp and len(double_inter_imgs) > NUM_CORES:
-        
-        # Create a shared array for the left image
-        X_shape = img_arr_left.shape
-        X = RawArray('B', X_shape[0] * X_shape[1] * X_shape[2])
-        X_np = np.frombuffer(X, dtype='uint8').reshape(X_shape) # Wrap shared array as numpy array
-        np.copyto(X_np, img_arr_left) # Copy image to the shared array
-
-        # Create a shared array for the right image as above
-        Y_shape = img_arr_right.shape
-        Y = RawArray('B', Y_shape[0] * Y_shape[1] * Y_shape[2])
-        Y_np = np.frombuffer(Y, dtype='uint8').reshape(Y_shape)
-        np.copyto(Y_np, img_arr_right)
-
-        # Use multiprocessing to tile the numpy array
-        with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, Y, Y_shape)) as pool:
-            multi = [pool.apply_async(TileUtils.generate_tile_between_two_images, args=(tile, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, path, img_format)) for (_, _, x, y, done_x, done_y, path) in double_inter_imgs]
-            f = [p.get() for p in multi]
-            pool.close()
-            pool.join()
-    else:
-    """
     # Sequentially generate tiles
     for _, _, x, y, done_x, done_y, path in double_inter_imgs:
         TileUtils.generate_tile_between_two_images(t_width, t_height, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, path, img_format, img_arr_left=img_arr_left, img_arr_right=img_arr_right)
@@ -142,7 +119,6 @@ def processQuadsTuple(t_width, t_height, inter_dir, img_format, quad_inter_imgs)
     for _, _, _, _, x, y, done_x, done_y, path in quad_inter_imgs:
         TileUtils.generate_tile_between_four_images(t_width, t_height, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, inter_metadata_TL.end_x - inter_metadata_TL.start_x, inter_metadata_TL.end_y - inter_metadata_TL.start_y, x, y, done_x, done_y, x - inter_metadata_TL.start_x, y - inter_metadata_TL.start_y, path, img_format)
     return 1
-
 
 def processQuadsMP(args):
     """ Wrapper function to unpack args """
@@ -236,7 +212,7 @@ class TileUtils():
         num_iterations = num_rows * num_cols
        
         # Find the pixel coordinate extents of each tile to be generated
-        print("Gathering tiling information...", flush=True)
+        print("Gathering tiling information...", end="", flush=True)
         if mp:
             with Pool(processes=NUM_CORES) as pool:
                 args = zip(repeat((metadata, tile, WIDTH, HEIGHT, geoTran_d, tile_date_path, num_rows, num_cols)), list(range(num_iterations)))
@@ -245,7 +221,8 @@ class TileUtils():
             pixel_coords = []
             for index in range(num_iterations):
                 pixel_coords.append(getTilingSplitCoordsTuple(tile, WIDTH, HEIGHT, geoTran_d, tile_date_path, num_rows, num_cols, index))
-        
+        print("done!")
+
         if mp:
             print("Generating {} tiles using {} processes...".format(len(pixel_coords), NUM_CORES), flush=True)
         else:
@@ -253,7 +230,7 @@ class TileUtils():
 
         if ultra_large: 
             # Create the intermediate tiles
-            inter_dir, img_width, img_height = TileUtils.img_to_intermediate_images(tiff_path, tile, WIDTH, HEIGHT, metadata.date, img_format)
+            inter_dir, img_width, img_height = TileUtils.img_to_intermediate_images(tiff_path, tile, WIDTH, HEIGHT, metadata.date, img_format, mp)
 
             # Add each coordinate to its proper list
             intermediate_files = [f for f in os.listdir(inter_dir) if f.endswith(img_format)]
@@ -262,7 +239,7 @@ class TileUtils():
             intermediate_info = TileUtils.getIntermediateTilingInfo(tile, pixel_coords, WIDTH, HEIGHT, img_width, img_height, intermediate_files)
 
             # Tile the complete images
-            print("Starting to tile from complete images")
+            print("\tTiling from complete images")
             for single_inter_imgs in tqdm(intermediate_info[0]):
                 filename = single_inter_imgs[0][0]
                 inter_metadata = IntermediateMetadata(filename)
@@ -293,7 +270,7 @@ class TileUtils():
                         TileUtils.generate_tile(tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format, inter_x=(x - inter_metadata.start_x), inter_y=(y - inter_metadata.start_y), img_arr=img_arr)
                 
             # Tile in between two images
-            print("Starting to tile between two images")
+            print("\tStarting to tile between two images...",end="",flush=True)
             if mp:
                 with Pool(processes=NUM_CORES) as pool:
                     args = zip(repeat((tile.width, tile.height, inter_dir, img_format)), intermediate_info[1])
@@ -301,10 +278,10 @@ class TileUtils():
             else:
                 for double_inter_imgs in tqdm(intermediate_info[1]):
                     processDoublesTuple(tile.width, tile.height, inter_dir, img_format, double_inter_imgs)
-                
+            print("done!")
             
-            # Tile in between four images  CHANGE TO RUN THIS STEP IN PARALLEL
-            print("Starting to tile between four images")
+            # Tile in between four images
+            print("\tStarting to tile between four images...",end="",flush=True)
             if mp:
                 with Pool(processes=NUM_CORES) as pool:
                     args = zip(repeat((tile.width, tile.height, inter_dir, img_format)), intermediate_info[2])
@@ -433,7 +410,7 @@ class TileUtils():
         return filename, Rectangle(Coordinate((bl_y, bl_x)), Coordinate((tr_y, tr_x)))
 
     @classmethod
-    def img_to_intermediate_images(cls, tiff_path, tile, width, height, date, img_format):
+    def img_to_intermediate_images(cls, tiff_path, tile, width, height, date, img_format, mp):
         output_dir = os.path.join(os.path.dirname(tiff_path), 'inter_{}'.format(date))
         os.mkdir(output_dir)
 
@@ -470,15 +447,26 @@ class TileUtils():
                 height_current += max_img_height
                 index += 1
             width_current += max_img_width
-        
-        # Sequentially generate intermediate tiles
-        for (width_current, height_current, width_length, height_length, index) in intermediate_data:
-            TileUtils.generate_intermediate_image(output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format)
-        
+        print("\tCreating intermediate images...",end="",flush=True)
+        if mp:
+            with Pool(processes=NUM_CORES) as pool:
+                multi = [pool.apply_async(TileUtils.generate_intermediate_image, args=(output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format, mp)) for (width_current, height_current, width_length, height_length, index) in intermediate_data]
+                f = [p.get() for p in multi]
+                pool.close()
+                pool.join()
+        else:
+            for (width_current, height_current, width_length, height_length, index) in intermediate_data:
+                TileUtils.generate_intermediate_image(output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format, mp)
+        print("done!")
         return output_dir, original_max_img_width, original_max_img_height
 
     @classmethod 
-    def generate_intermediate_image(cls, output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format):
+    def generate_intermediate_image(cls, output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format, mp):
         output_path = os.path.join(output_dir, "{}_{}_{}_{}_{}".format(str(index).zfill(5), width_current, height_current, width_current + width_length, height_current + height_length))
+        output_log_path = os.path.join(output_dir, "logs.txt")
         command = "gdal_translate -of {of} -srcwin --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {out_path}.{ext}".format(of=img_format.upper(), x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=tiff_path, out_path=output_path, ext=img_format)
-        os.system(command)
+        if mp:
+            os.system("{} > {}".format(command, output_log_path))
+        else:
+            os.system(command)
+        
