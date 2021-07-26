@@ -270,22 +270,21 @@ class TileUtils():
                         TileUtils.generate_tile(tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format, inter_x=(x - inter_metadata.start_x), inter_y=(y - inter_metadata.start_y), img_arr=img_arr)
                 
             # Tile in between two images
-            print("\tStarting to tile between two images...",end="",flush=True)
+            print("\tTiling between two images")
             if mp:
                 with Pool(processes=NUM_CORES) as pool:
                     args = zip(repeat((tile.width, tile.height, inter_dir, img_format)), intermediate_info[1])
-                    result = pool.map(processDoublesMP, args)
+                    result = list(tqdm.tqdm(pool.imap(processDoublesMP, args), total=len(intermediate_info[1])))
             else:
                 for double_inter_imgs in tqdm(intermediate_info[1]):
                     processDoublesTuple(tile.width, tile.height, inter_dir, img_format, double_inter_imgs)
-            print("done!")
             
             # Tile in between four images
-            print("\tStarting to tile between four images...",end="",flush=True)
+            print("\tTiling between four images")
             if mp:
                 with Pool(processes=NUM_CORES) as pool:
                     args = zip(repeat((tile.width, tile.height, inter_dir, img_format)), intermediate_info[2])
-                    result = pool.map(processQuadsMP, args)
+                    result = list(tqdm.tqdm(pool.imap(processQuadsMP, args), total=len(intermediate_info[2])))
             else:
                 for quad_inter_imgs in tqdm(intermediate_info[2]):
                     processQuadsTuple(tile.width, tile.height, inter_dir, img_format, quad_inter_imgs)
