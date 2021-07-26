@@ -274,7 +274,7 @@ class TileUtils():
             if mp:
                 with Pool(processes=NUM_CORES) as pool:
                     args = zip(repeat((tile.width, tile.height, inter_dir, img_format)), intermediate_info[1])
-                    result = list(tqdm.tqdm(pool.imap(processDoublesMP, args), total=len(intermediate_info[1])))
+                    result = list(tqdm(pool.imap(processDoublesMP, args), total=len(intermediate_info[1])))
             else:
                 for double_inter_imgs in tqdm(intermediate_info[1]):
                     processDoublesTuple(tile.width, tile.height, inter_dir, img_format, double_inter_imgs)
@@ -284,7 +284,7 @@ class TileUtils():
             if mp:
                 with Pool(processes=NUM_CORES) as pool:
                     args = zip(repeat((tile.width, tile.height, inter_dir, img_format)), intermediate_info[2])
-                    result = list(tqdm.tqdm(pool.imap(processQuadsMP, args), total=len(intermediate_info[2])))
+                    result = list(tqdm(pool.imap(processQuadsMP, args), total=len(intermediate_info[2])))
             else:
                 for quad_inter_imgs in tqdm(intermediate_info[2]):
                     processQuadsTuple(tile.width, tile.height, inter_dir, img_format, quad_inter_imgs)
