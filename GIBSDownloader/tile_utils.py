@@ -177,7 +177,6 @@ class TileUtils():
             if quad_coords:
                 quad_inter_pixel_coords.append(quad_coords)
         return single_inter_pixel_coords, double_inter_pixel_coords, quad_inter_pixel_coords
-
     
     @classmethod
     def img_to_tiles(cls, tiff_path, region, res, tile, tile_date_path, img_format, mp):
@@ -305,6 +304,7 @@ class TileUtils():
 
                 # Copy image to the shared array
                 np.copyto(X_np, img_arr)
+
                 # Use multiprocessing to tile the numpy array
                 with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, None, None)) as pool:
                     multi = [pool.apply_async(TileUtils.generate_tile, args=(tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format)) for (x, y, done_x, done_y, path) in pixel_coords]

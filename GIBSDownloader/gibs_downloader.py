@@ -113,7 +113,7 @@ def main():
     parser.add_argument("--tile-overlap", default=0.5, type=float, help="percent overlap for each tile")
     parser.add_argument("--boundary-handling", default=Handling.complete_tiles_shift, type=Handling, help="define how to handle tiles at image boundaries", choices=list(Handling))
     parser.add_argument("--remove-originals", default=False, type=bool, help="keep/delete original downloaded images")
-    parser.add_argument("--generate-tfrecords", default=False, type=bool, help="generate tfrecords for image tiles")
+    parser.add_argument("--gen-tfrecords", default=False, type=bool, help="generate tfrecords for image tiles")
     parser.add_argument("--verbose", default=False, type=bool, help="log downloading process")
     parser.add_argument("--product", default=None, type=Product, help="select the NASA imagery product", choices=list(Product))
     parser.add_argument("--keep-xml", default=False, type=bool, help="preserve the xml files generated to download images")

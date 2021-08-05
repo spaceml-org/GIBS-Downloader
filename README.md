@@ -12,6 +12,8 @@
 ![platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![Version](https://img.shields.io/badge/Version-1.1.0-blue)
 
+[![Google Colab Notebook Example](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/spaceml-org/Self-Supervised-Learner/blob/simsiam/tutorials/PythonColabTutorial_Merced.ipynb)
+
 </div>
 
 # GIBS Downloader
@@ -95,13 +97,13 @@ The download yields the following image:
     - `discard-incomplete-tiles` simply removes the images which extend past the boundaries. 
 
 #### Generate TFRecords
-* `--generate-tfrecords`: when set to true, the tiles are used to generate 100 MB TFRecord files which contain the tiles as well as the coordinates of the bottom left and top right corner of each tile (defaults to false). Note that this will require user installation of TensorFlow with `pip install tensorflow==2.4.0`
+* `--gen-tfrecords`: when set to true, the tiles are used to generate 100 MB TFRecord files which contain the tiles as well as the coordinates of the bottom left and top right corner of each tile (defaults to false). Note that this will require user installation of TensorFlow with `pip install tensorflow==2.4.0`
 
 #### Generate Video
 * `--animate`: when set to true, a video will be generated from the images downloaded (defaults to false).
 
 #### Multiprocessing
-* `--mp`: when set to true, the tool takes advantage of parallelism and utilizes Python's multiprocessing library to speed up the generation of tiles (defaults to false). NOTE that this feature has not yet been tested on Windows.
+* `--mp`: when set to true, the tool takes advantage of parallelism and utilizes Python's multiprocessing library to speed up the generation of tiles (defaults to false). You will observe a significant speedup when using this flag and working on a machine with multiple cores. The more cores you have, the faster your tiling will be. NOTE that this feature has not yet been tested on Windows.
 
 #### Additional features
 * `--output-path`: specify the path to where the images should be downloaded (defaults to the current working directory)
