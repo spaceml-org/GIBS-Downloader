@@ -129,7 +129,7 @@ def main():
     output_path = args.output_path
     logging = args.verbose
     rm_originals = args.remove_originals
-    write_tfrecords = args.generate_tfrecords
+    write_tfrecords = args.gen_tfrecords
     tiling = args.tile
     tile = Tile(args.tile_width, args.tile_height, args.tile_overlap, args.boundary_handling)
     product = args.product
