@@ -5,7 +5,7 @@
 <p align="center">
   Published by <a href="http://spaceml.org/">SpaceML</a> •
   <a href="https://arxiv.org/abs/2012.10610">About SpaceML</a> •
-  <a href="https://github.com/spaceml-org/GIBS-Downloader/blob/notebooks/GIBS_Downloader_Demo.ipynb">Colab Notebook Example</a>
+  <a href="https://github.com/spaceml-org/GIBS-Downloader/blob/main/notebooks/GIBS_Downloader_Demo.ipynb">Colab Notebook Example</a>
 </p>
 
 
@@ -14,7 +14,7 @@
 ![Version](https://img.shields.io/badge/Version-1.0.0-blue)
 
 [![Pip Package](https://img.shields.io/badge/Pip%20Package-Coming%20Soon-0073b7.svg)](https://pypi.org/project/pip/)
-[![Google Colab Notebook Example](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/spaceml-org/GIBS-Downloader/blob/notebooks/GIBS_Downloader_Demo.ipynb)
+[![Google Colab Notebook Example](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/spaceml-org/GIBS-Downloader/blob/main/notebooks/GIBS_Downloader_Demo.ipynb)
 
 </div>
 
