@@ -4,6 +4,8 @@ from datetime import date, timedelta
 from GIBSDownloader.product import Product
 from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 
+MAX_JPEG_SIZE = 65500
+
 class TiffDownloader():
 
     @classmethod
@@ -12,13 +14,20 @@ class TiffDownloader():
 
     @classmethod
     def download_area_tiff(cls, region, date, xml_path, filename, name, res, img_format, width=None, height=None):
-        
+        maxed_jpg = False
+
         if width == None and height == None:
             width, height = region.calculate_width_height(res)
+            if width > MAX_JPEG_SIZE or height > MAX_JPEG_SIZE:
+                maxed_jpg = True
+
         lon_lat = "{l_x} {upper_y} {r_x} {lower_y}".format(l_x=region.bl_coords.x, upper_y=region.tr_coords.y, r_x=region.tr_coords.x, lower_y=region.bl_coords.y)
         
         xml_filename = TiffDownloader.generate_xml(xml_path, name, date)
-        command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll} {xml} {f}.{ext}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
+        if maxed_jpg:
+            command = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} -co 'TFW=YES' {xml} {f}.{ext}".format(w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
+        else:
+            command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll}  {xml} {f}.{ext}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)    
         os.system(command)
 
     @classmethod
@@ -43,6 +52,3 @@ class TiffDownloader():
         with open(xml_filename, 'w') as xml_file:
             xml_file.write(xml_content)
         return xml_filename
-
-
-

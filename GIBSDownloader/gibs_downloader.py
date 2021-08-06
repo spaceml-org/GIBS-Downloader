@@ -16,11 +16,17 @@ from GIBSDownloader.file_metadata import TiffMetadata
 from GIBSDownloader.animator import Animator
 from GIBSDownloader.dataset_searcher import DatasetSearcher
 
+MAX_JPEG_SIZE = 65500
+
 def generate_download_path(start_date, end_date, bl_coords, output, name):
     base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=name.replace(" ","-"), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
     return os.path.join(output, base)
 
 def download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format):
+    """ 
+        @returns img_format in case an image dimension exceeds the max 
+        JPEG size limit, and a GeoTiff needs to be downloaded instead of a JPEG 
+    """
     if not os.path.isdir(download_path):
         os.mkdir(download_path)
         os.mkdir(originals_path)
@@ -30,22 +36,26 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
     if not os.path.isdir(xml_path):
         os.mkdir(xml_path)
 
+    width, height = region.calculate_width_height(res)
+    if width > MAX_JPEG_SIZE or height > MAX_JPEG_SIZE:
+        img_format = 'tif'
+
     for date in dates:
         tiff_output = TiffDownloader.generate_download_filename(originals_path, name.replace(" ","-"), date)
         if not os.path.isfile(tiff_output + '.' + img_format):
             if logging:
                 print('Downloading:', date)
             TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res, img_format)
+    return img_format
             
     print("The specified region and set of dates have been downloaded")
 
-def tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format):
+def tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format, mp, ext=None):
     if not os.path.isdir(tile_res_path):
         os.mkdir(tile_res_path)
 
-    files = [f for f in os.listdir(originals_path) if f.endswith(img_format)]
+    files = [f for f in os.listdir(originals_path) if f.endswith(ext)]
     files.sort() # tile in chronological order
-    print(files)
 
     for count, filename in enumerate(files):
         tiff_path = os.path.join(originals_path, filename) # path to GeoTiff file
@@ -53,8 +63,8 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region, res, im
         tile_date_path = tile_res_path + metadata.date + '/' # path to tiles for specific date
         if not os.path.exists(tile_date_path):
             os.mkdir(tile_date_path)
-            print("Tiling day {} of {}".format(count + 1, len(files)))
-            TileUtils.img_to_tiles(tiff_path, region, res, tile, tile_date_path, img_format)
+            print("Tiling day {} of {}".format(count + 1, len(files)), flush=True)
+            TileUtils.img_to_tiles(tiff_path, region, res, tile, tile_date_path, img_format, mp)
         else: 
             print("Tiles for day {} have already been generated. Moving on to the next day".format(count + 1))
     print("The specified tiles have been generated")
@@ -103,12 +113,13 @@ def main():
     parser.add_argument("--tile-overlap", default=0.5, type=float, help="percent overlap for each tile")
     parser.add_argument("--boundary-handling", default=Handling.complete_tiles_shift, type=Handling, help="define how to handle tiles at image boundaries", choices=list(Handling))
     parser.add_argument("--remove-originals", default=False, type=bool, help="keep/delete original downloaded images")
-    parser.add_argument("--generate-tfrecords", default=False, type=bool, help="generate tfrecords for image tiles")
+    parser.add_argument("--gen-tfrecords", default=False, type=bool, help="generate tfrecords for image tiles")
     parser.add_argument("--verbose", default=False, type=bool, help="log downloading process")
     parser.add_argument("--product", default=None, type=Product, help="select the NASA imagery product", choices=list(Product))
     parser.add_argument("--keep-xml", default=False, type=bool, help="preserve the xml files generated to download images")
     parser.add_argument("--animate", default=False, type=bool, help="Generate a timelapse video of the downloaded region")
     parser.add_argument("--name", default="VIIRS_SNPP_CorrectedReflectance_TrueColor", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
+    parser.add_argument("--mp", default=False, type=bool, help="utilize multiprocessing to generate tiles")
     
 
     # get the user input
@@ -118,13 +129,17 @@ def main():
     output_path = args.output_path
     logging = args.verbose
     rm_originals = args.remove_originals
-    write_tfrecords = args.generate_tfrecords
+    write_tfrecords = args.gen_tfrecords
     tiling = args.tile
     tile = Tile(args.tile_width, args.tile_height, args.tile_overlap, args.boundary_handling)
     product = args.product
     keep_xml = args.keep_xml
     animate = args.animate
     name = args.name
+    mp = args.mp
+    
+    if product is not None:
+        name = product.get_long_name()
     
     name, res, img_format = DatasetSearcher.getProductInfo(name)
     
@@ -151,10 +166,10 @@ def main():
     # get range of dates
     dates = TiffDownloader.get_dates_range(start_date, end_date)
 
-    download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format)
+    img_format_cmd = download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format)
 
     if tiling:
-        tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format)
+        tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format, mp, ext=img_format_cmd)
 
     if write_tfrecords:
         tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_format)

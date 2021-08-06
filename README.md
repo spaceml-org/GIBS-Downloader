@@ -4,13 +4,17 @@
 
 <p align="center">
   Published by <a href="http://spaceml.org/">SpaceML</a> •
-  <a href="https://arxiv.org/abs/2012.10610">About SpaceML</a>
+  <a href="https://arxiv.org/abs/2012.10610">About SpaceML</a> •
+  <a href="https://github.com/spaceml-org/GIBS-Downloader/blob/notebooks/GIBS_Downloader_Demo.ipynb">Colab Notebook Example</a>
 </p>
 
 
-[![Python Version](https://img.shields.io/badge/Python-3.6%20|%203.7%20|%203.8-green.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/Python-3.6%20|%203.7%20|%203.8%20|%203.9-green.svg)](https://www.python.org/)
 ![platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
-![Version](https://img.shields.io/badge/Version-1.1.0-blue)
+![Version](https://img.shields.io/badge/Version-1.0.0-blue)
+
+[![Pip Package](https://img.shields.io/badge/Pip%20Package-Coming%20Soon-0073b7.svg)](https://pypi.org/project/pip/)
+[![Google Colab Notebook Example](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/spaceml-org/GIBS-Downloader/blob/notebooks/GIBS_Downloader_Demo.ipynb)
 
 </div>
 
@@ -95,10 +99,13 @@ The download yields the following image:
     - `discard-incomplete-tiles` simply removes the images which extend past the boundaries. 
 
 #### Generate TFRecords
-* `--generate-tfrecords`: when set to true, the tiles are used to generate 100 MB TFRecord files which contain the tiles as well as the coordinates of the bottom left and top right corner of each tile (defaults to false). Note that this will require user installation of TensorFlow with `pip install tensorflow==2.4.0`
+* `--gen-tfrecords`: when set to true, the tiles are used to generate 100 MB TFRecord files which contain the tiles as well as the coordinates of the bottom left and top right corner of each tile (defaults to false). Note that this will require user installation of TensorFlow with `pip install tensorflow==2.4.0`
 
 #### Generate Video
 * `--animate`: when set to true, a video will be generated from the images downloaded (defaults to false).
+
+#### Multiprocessing
+* `--mp`: when set to true, the tool takes advantage of parallelism and utilizes Python's multiprocessing library to speed up the generation of tiles (defaults to false). You will observe a significant speedup when using this flag and working on a machine with multiple cores. The more cores you have, the faster your tiling will be. NOTE that this feature has not yet been tested on Windows.
 
 #### Additional features
 * `--output-path`: specify the path to where the images should be downloaded (defaults to the current working directory)
@@ -146,17 +153,20 @@ Clearly visible are the wildfires that plagued California between September and 
 #### How can I find the coordinates of the bottom left and top right corners of the rectangular region that I want to download?
 On [Google Maps](https://www.google.com/maps), you can right click at any point on the map, and you will be able to copy that point's latitude and longitude. You can then right click on two points that would form the bottom left and top right corners of a rectangular region and copy those coordinates.
 
+#### What format will my imagery be downloaded in?
+Each imagery [product](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products) has an associated file format, and your download will try to be in that format (usually either JPEG or PNG). However, if the region you elect to download is too large for one file as the specified format, then your data will be downloaded as a GeoTiff. Then, once you choose to tile that image, the generated tiles will be the format associated with the product (again, usually JPEG or PNG).
+
 #### What is tiling?
-The GeoTiff files for the downloaded regions can potentially be very large images that you might not be able to work with directly (think images of the whole world). Tiling makes smaller "tiles" from the large image, which are essentially smaller images that combine to form the larger one.
+The image files for the downloaded regions can potentially be very large images that you might not be able to work with directly (think images of the whole world). Tiling makes smaller "tiles" from the large image, which are essentially smaller images that combine to form the larger one.
 
 #### Can I tile images and write to TFRecords after already having downloaded them?
 If you initially download a region for a range of dates without electing to tile the images, you can call the command again with the same coordinates for the region and same range of dates but with the tiling flag set to true, and the package will tile the already downloaded images. You can also call the same command multiple times with varying tile sizes and overlaps, and the package will create new folders in `tiled_images/` for each specified combination of tile size and overlap. It will not download the tiff files for the same region and dates twice. Note that if you select `--remove-originals`, you will not be able to perform these additional tilings after the initial command, as the original images will be deleted.
 
 #### I want to download imagery of the entire Earth. What do I need to know?
-To download the entire Earth, the coordinates you need to enter are: `"-90, -180" "90, 180"`. The GeoTiff file for one day of the entire Earth is approximately 38 GB.
+To download the entire Earth, the coordinates you need to enter are: `"-90, -180" "90, 180"`. The GeoTiff file for one day of the entire Earth is approximately `38 GB`. The dimensions of the file of the world will be `(159840x79920)`. If you tile this image, assuming a tile width and height of `512 pixels` and `0.5 overlap`, you should expect `194,688 tiles` to be created.
 
 ### Upcoming Features
-* Tiling speed will be improved with multiprocessing
+* Installation process will be simplified
 
 ## Citation
 If you find GIBS Downloader useful in your research, please consider citing
