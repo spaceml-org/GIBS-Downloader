@@ -44,7 +44,7 @@ class Rectangle():
         return (width, height)
     
     # Finds the corresponding MODIS Grid tile from the bottom left coordinates
-    # Taken from #https://gis.stackexchange.com/questions/265400/getting-tile-number-of-sinusoidal-modis-product-from-lat-long 
+    # Taken from https://gis.stackexchange.com/questions/265400/getting-tile-number-of-sinusoidal-modis-product-from-lat-long 
     # All credit to user @renatoc
     def lat_lon_to_modis(self):
         # Constants for MODIS grid tile conversion

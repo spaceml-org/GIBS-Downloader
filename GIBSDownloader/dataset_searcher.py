@@ -25,9 +25,8 @@ class DatasetSearcher():
                     product_name = child.text
                 if 'Format' in str(child):
                     img_format = child.text.replace('image/',"")
-                if 'TileMatrixSetLink' in str(child):
-                    if 'TileMatrixSet' in str(child[0]):
-                        img_res = child[0].text
+                if 'TileMatrixSetLink' in str(child) and 'TileMatrixSet' in str(child[0]):
+                    img_res = child[0].text
             imagery_prods.append([product_name,img_res,img_format])
 
         # Convert the list of products to pandas dataframe
@@ -44,13 +43,13 @@ class DatasetSearcher():
             name = filter_df.Imagery_Product_Name.item().replace("_"," ")
             res = filter_df.Image_Resolution.item()
             img_format = filter_df.Image_Format.item()
-            
+
         elif len(set(filter_df.Imagery_Product_Name)) == 1 and name[0] == list(set(filter_df.Imagery_Product_Name))[0].lower():
             filter_df = filter_df.sort_values(by=["Image_Resolution"])
             name = filter_df.Imagery_Product_Name.iloc[0].replace("_"," ")
             res = filter_df.Image_Resolution.iloc[0]
             img_format = filter_df.Image_Format.iloc[0]
-            
+
         else:
             print("\n\n\nPlease enter the full imagery product name from the following list:\n")
             print(filter_df[["Imagery_Product_Name", "Image_Resolution"]].to_string(index=False))

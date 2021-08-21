@@ -35,8 +35,6 @@ class TFRecordUtils():
         image_raw = open(img_path, 'rb').read()
         image_shape = tf.image.decode_png(image_raw).shape
 
-        #print("Metdata info:", metadata.date, metadata.region.bl_coords.y, metadata.region.bl_coords.x, metadata.region.tr_coords.y, metadata.region.tr_coords.x)
-
         feature = {
             'date': TFRecordUtils._bytes_feature(bytes(metadata.date, 'utf-8')),
             'image_raw': TFRecordUtils._bytes_feature(image_raw),

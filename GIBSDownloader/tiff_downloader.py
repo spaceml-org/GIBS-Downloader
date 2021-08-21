@@ -16,18 +16,18 @@ class TiffDownloader():
     def download_area_tiff(cls, region, date, xml_path, filename, name, res, img_format, width=None, height=None):
         maxed_jpg = False
 
-        if width == None and height == None:
+        if width is None and height is None:
             width, height = region.calculate_width_height(res)
             if width > MAX_JPEG_SIZE or height > MAX_JPEG_SIZE:
                 maxed_jpg = True
 
         lon_lat = "{l_x} {upper_y} {r_x} {lower_y}".format(l_x=region.bl_coords.x, upper_y=region.tr_coords.y, r_x=region.tr_coords.x, lower_y=region.bl_coords.y)
-        
+
         xml_filename = TiffDownloader.generate_xml(xml_path, name, date)
         if maxed_jpg:
             command = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} -co 'TFW=YES' {xml} {f}.{ext}".format(w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
         else:
-            command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll}  {xml} {f}.{ext}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)    
+            command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll}  {xml} {f}.{ext}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
         os.system(command)
 
     @classmethod
@@ -38,8 +38,7 @@ class TiffDownloader():
         d1 = date(int(start_components[0]), int(start_components[1]), int(start_components[2]))
         d2 = date(int(end_components[0]), int(end_components[1]), int(end_components[2]))
 
-        dates = [d1 + timedelta(days=x) for x in range((d2 - d1).days + 1)]
-        return dates
+        return [d1 + timedelta(days=x) for x in range((d2 - d1).days + 1)]
     
     @classmethod
     def generate_xml(cls, xml_path, name, date):

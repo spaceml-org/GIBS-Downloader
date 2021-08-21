@@ -46,9 +46,9 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
             if logging:
                 print('Downloading:', date)
             TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res, img_format)
-    return img_format
             
     print("The specified region and set of dates have been downloaded")
+    return img_format
 
 def tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format, mp, ext=None):
     if not os.path.isdir(tile_res_path):
@@ -105,7 +105,7 @@ def main():
     parser.add_argument("start_date", metavar='start-date', type=str, help="starting date for downloads")
     parser.add_argument("end_date", metavar='end-date',type=str, help="ending date for downloads")
     parser.add_argument("bottom_left_coords", metavar='bottom-left-coords', type=str, help='coordinates for bottom left corner formatted "lat, lon"')
-    parser.add_argument("top_right_coords", metavar='top-right-coords', type=str, help='coordinates for top right corner formatted "lat, lon"')    
+    parser.add_argument("top_right_coords", metavar='top-right-coords', type=str, help='coordinates for top right corner formatted "lat, lon"')
     parser.add_argument("--output-path", default=os.getcwd(), type=str, help="path to output directory")
     parser.add_argument("--tile", default=False, type=bool, help="tiling flag")
     parser.add_argument("--tile-width", default=512, type=int, help="tiled image width")
@@ -120,7 +120,6 @@ def main():
     parser.add_argument("--animate", default=False, type=bool, help="Generate a timelapse video of the downloaded region")
     parser.add_argument("--name", default="VIIRS_SNPP_CorrectedReflectance_TrueColor", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
     parser.add_argument("--mp", default=False, type=bool, help="utilize multiprocessing to generate tiles")
-    
 
     # get the user input
     args = parser.parse_args()
@@ -137,17 +136,17 @@ def main():
     animate = args.animate
     name = args.name
     mp = args.mp
-    
+
     if product is not None:
         name = product.get_long_name()
-    
+
     name, res, img_format = DatasetSearcher.getProductInfo(name)
-    
+
     # get the latitude, longitude values from the user input
     bl_coords = Coordinate([float(i) for i in args.bottom_left_coords.replace(" ","").split(',')])
     tr_coords = Coordinate([float(i) for i in args.top_right_coords.replace(" ", "").split(',')])
     region = Rectangle(bl_coords, tr_coords)
-    
+
     # check if inputted coordinates are valid
     if (bl_coords.x > tr_coords.x or bl_coords.y > tr_coords.y):
         raise argparse.ArgumentTypeError('Inputted coordinates are invalid: order should be (lower_latitude,left_longitude upper_latitude,right_longitude)')
@@ -173,16 +172,15 @@ def main():
 
     if write_tfrecords:
         tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_format)
-        
+
     if animate:
         generate_video(originals_path, region, dates, video_path, xml_path, name, res, img_format)
-    
+
     if rm_originals:
         remove_originals(originals_path, logging)
 
-    if not keep_xml:
-        if os.path.exists(xml_path):
-            shutil.rmtree(xml_path)
+    if not keep_xml and os.path.exists(xml_path):
+        shutil.rmtree(xml_path)
 
 if __name__ == "__main__":
     main()
