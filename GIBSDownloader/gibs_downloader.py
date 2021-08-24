@@ -104,7 +104,7 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
             if logging:
                 print('Downloading:', date)
             TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res, img_format)
-            
+
     print("The specified region and set of dates have been downloaded")
     return img_format
 
@@ -137,6 +137,7 @@ def tile_originals(originals_path, tile_res_path, tile, logging, region, res, im
         tile_date_path = tile_res_path + metadata.date + '/' # path to tiles for specific date
         if not os.path.exists(tile_date_path):
             os.mkdir(tile_date_path)
+        else:
             print("Tiling day {} of {}".format(count + 1, len(files)), flush=True)
             TileUtils.img_to_tiles(tiff_path, region, res, tile, tile_date_path, img_format, mp)
         else: 
@@ -158,12 +159,12 @@ def tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_form
     if os.path.isdir(tile_res_path):
             if not os.path.isdir(tfrecords_res_path):
                 os.mkdir(tfrecords_res_path)
-                if logging: 
+                if logging:
                     print("Writing files at:", tile_res_path, " to TFRecords")
                 TFRecordUtils.write_to_tfrecords(tile_res_path, tfrecords_res_path, name, img_format)
             else:
                 print("The specified TFRecords have already been written")
-    else: 
+    else:
         print("Unable to write to TFRecords due to nonexistent tile path")
 
 def remove_originals(originals_path, logging):

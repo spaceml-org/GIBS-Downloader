@@ -4,6 +4,9 @@ from datetime import date, timedelta
 from GIBSDownloader.product import Product
 from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 
+import rasterio
+from rasterio.transform import from_bounds
+
 MAX_JPEG_SIZE = 65500
 
 class TiffDownloader():
@@ -37,6 +40,33 @@ class TiffDownloader():
         else:
             command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll}  {xml} {f}.{ext}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
         os.system(command)
+        
+        with rasterio.open(xml_filename) as src:
+            wind = src.window(
+                region.bl_coords.x,
+                region.bl_coords.y,
+                region.tr_coords.x,
+                region.tr_coords.y,
+                precision=21
+            )
+            profile = src.profile
+            profile["driver"] = img_format
+            profile["width"] = width
+            profile["height"] = height
+            if src.crs is not None:
+                profile["transform"] = from_bounds(
+                    region.bl_coords.x,
+                    region.bl_coords.y,
+                    region.tr_coords.x,
+                    region.tr_coords.y,
+                    width,
+                    height,
+                )
+
+            with rasterio.open(filename, "w", **profile) as dst_src:
+                dst_src.write(
+                    src.read(window=wind, out_shape=(src.count, height, width))
+                )
 
     @classmethod
     def get_dates_range(cls, start_date, end_date):

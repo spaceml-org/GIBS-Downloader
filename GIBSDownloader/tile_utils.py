@@ -12,8 +12,10 @@ from multiprocessing import Pool
 import numpy as np
 from matplotlib import pyplot as plt
 from PIL import Image
-from tqdm import tqdm 
+from tqdm import tqdm
 from bs4 import BeautifulSoup as bs
+import rasterio
+from rasterio.windows import Window
 
 from GIBSDownloader.tile import Tile
 from GIBSDownloader.handling import Handling
@@ -184,7 +186,7 @@ class TileUtils():
                 bs_content = bs(content, "lxml")
                 values = str(bs_content.find("geotransform")).replace("<geotransform> ", "").replace("</geotransform>","").split(",")
                 geotran_d = {"x_min":float(values[0]),"x_size": float(values[1]), "y_min":float(values[3]),"y_size": float(values[5])}
-        return geotran_d
+        return geotran_
 
     @classmethod
     def get_num_rows_cols(cls, tile, width, height):
@@ -534,8 +536,8 @@ class TileUtils():
             real_x = inter_x
         if inter_y is not None:
             real_y = inter_y
-
-        # Tiling past boundaries 
+  
+        # Tiling past boundaries
         if tile.handling == Handling.include_incomplete_tiles and (done_x or done_y):
             incomplete_tile = img_arr[real_y:min(real_y + tile.height, HEIGHT), real_x:min(real_x + tile.width, WIDTH)]
             empty_array = np.zeros((tile.height, tile.height, 3), dtype=np.uint8)
@@ -544,7 +546,7 @@ class TileUtils():
             incomplete_img.save(path + "." + img_format)
         else: # Tiling within boundaries
             tile_array = img_arr[real_y:real_y + tile.height, real_x:real_x + tile.width]
-            tile_img = Image.fromarray(tile_array)
+            tile_img = Image.fromarray(tile_array
             tile_img.save(path + "." + img_format)
         return 1
 
@@ -633,7 +635,7 @@ class TileUtils():
 
         max_img_width = min(width, MAX_INTERMEDIATE_LENGTH)
         max_img_height = min(height, MAX_INTERMEDIATE_LENGTH)
-        
+
         # Find largest possible intermediate image sizes
         while ((max_img_width != width) and (((width / max_img_width) % 1) * max_img_width  < tile.width)):
             max_img_width -= 256
@@ -657,7 +659,7 @@ class TileUtils():
             done_height = False
             max_img_height = original_max_img_height
             while height_current < height and not done_height:
-                if height - height_current < max_img_height: 
+                if height - height_current < max_img_height:
                     max_img_height = height - height_current
                     done_height = True
                 intermediate_data.append((width_current, height_current, max_img_width, max_img_height, index))
@@ -676,5 +678,21 @@ class TileUtils():
         output_log_path = os.path.join(output_dir, "logs.txt")
         filename = "{}.{}".format(output_path, img_format)
         if not os.path.isfile(filename):
+            with rasterio.Env(GDAL_PAM_ENABLED="NO"):
+                with rasterio.open(tiff_path) as src:
+                    profile = src.profile
+                    profile["driver"] = img_format
+                    profile["width"] = width_length
+                    profile["height"] = height_length
+
+                    wind = Window(width_current, height_current, width_length, height_length)
+                    if src.crs is not None:
+                        profile["transform"] = src.window_transform(wind)
+
+                    with rasterio.open(f"{output_path}.{img_format}", "w", **profile) as dst_src:
+                        dst_src.write(
+                            src.read(window=wind)
+                        ) 
             command = "gdal_translate -of {of} -srcwin --config GDAL_CACHEMAX 12000 --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {fname}".format(of=img_format.upper(), x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=originals_path, fname=filename)
             os.system("{} >> {}".format(command, output_log_path))
+
