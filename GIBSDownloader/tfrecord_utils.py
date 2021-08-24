@@ -4,13 +4,13 @@ import glob
 try:
     import tensorflow as tf
 except ImportError as e:
-    raise Exception("Missing TensorFlow. Install with: pip install tensorflow==2.4.0")
+    raise Exception("Missing TensorFlow. Install with: pip install tensorflow==2.5.0")
 
 from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 from GIBSDownloader.file_metadata import TileMetadata
 
 # Constants
-MAX_FILE_SIZE = 100_000_000 # 100 MB recommended TFRecord file size
+MAX_FILE_SIZE = 100_000_000  # 100 MB recommended TFRecord file size
 
 class TFRecordUtils():
     @classmethod
@@ -32,10 +32,9 @@ class TFRecordUtils():
 
     @classmethod
     def image_example(cls, img_path, metadata):
+        """Defines which features to store in the TFRecords"""
         image_raw = open(img_path, 'rb').read()
         image_shape = tf.image.decode_png(image_raw).shape
-
-        #print("Metdata info:", metadata.date, metadata.region.bl_coords.y, metadata.region.bl_coords.x, metadata.region.tr_coords.y, metadata.region.tr_coords.x)
 
         feature = {
             'date': TFRecordUtils._bytes_feature(bytes(metadata.date, 'utf-8')),
@@ -52,6 +51,7 @@ class TFRecordUtils():
     
     @classmethod
     def write_to_tfrecords(cls, input_path, output_path, name, img_format):
+        """Writes all tiles to TFRecords, creating TFRecords <=MAX_FILE_SIZE"""
         files = [f for f in glob.glob(input_path + "**/*.{}".format(img_format), recursive=True)]
         count = 0
         version = 0
