@@ -7,13 +7,21 @@ from GIBSDownloader.coordinate_utils import Rectangle, Coordinate
 MAX_JPEG_SIZE = 65500
 
 class TiffDownloader():
+    """Class containing several useful methods for downloading regions"""
 
     @classmethod
     def generate_download_filename(cls, output, name, date):
+        """Creates the filename for the `product` download of `date`"""
         return "{}{}_{}".format(output, name, date)
 
     @classmethod
     def download_area_tiff(cls, region, date, xml_path, filename, name, res, img_format, width=None, height=None):
+        """
+        Calls the command to download the user's requested region.
+
+        If the image does not exceed the JPEG library's maximum dimension size
+        limit, then the image is downloaded in product's
+        """
         maxed_jpg = False
 
         if width is None and height is None:
@@ -32,6 +40,7 @@ class TiffDownloader():
 
     @classmethod
     def get_dates_range(cls, start_date, end_date):
+        """Returns a list dates between `start_date` and `end_date`"""
         start_components = start_date.split('-')
         end_components = end_date.split('-')
 
@@ -42,10 +51,10 @@ class TiffDownloader():
     
     @classmethod
     def generate_xml(cls, xml_path, name, date):
+        """Generates the xml configuration file necessary for GDAL download"""
         xml_base = '<GDAL_WMS><Service name="TiledWMS"><ServerUrl>https://gibs.earthdata.nasa.gov/twms/epsg4326/best/twms.cgi?'
         xml_end = '</ServerUrl><TiledGroupName>{name} tileset</TiledGroupName><Change key="${{time}}">{date}</Change></Service></GDAL_WMS>'.format(name=name,date=date)
         xml_content = xml_base + xml_end
-
         xml_filename = '{}{}.xml'.format(xml_path, date)
 
         with open(xml_filename, 'w') as xml_file:

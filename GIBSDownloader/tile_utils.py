@@ -27,14 +27,13 @@ NUM_CORES = multiprocessing.cpu_count()
 
 arr_dict = {}
 
-def init_worker(X, X_shape, Y, Y_shape):
-    """ X and Y are RawArrays that are shared between child processes """
+def init_worker(X, X_shape):
+    """X is a RawArray that is shared between child processes"""
     arr_dict['X'] = X
     arr_dict['X_shape'] = X_shape
-    arr_dict['Y'] = Y
-    arr_dict['Y_shape'] = Y_shape
 
 def get_tiling_split_coords_tuple(metadata, tile, WIDTH, HEIGHT, geotran_d, tile_date_path, num_rows, num_cols, index):
+    """Computes the tile pixel coordinates of the `index`-th tile"""
     row = index // num_cols
     col = index % num_cols
 
@@ -56,11 +55,27 @@ def get_tiling_split_coords_tuple(metadata, tile, WIDTH, HEIGHT, geotran_d, tile
     return (x,y, done_x, done_y, path)
 
 def get_tiling_split_coords_MP(args):
-    """ Wrapper function to unpack args """
+    """Wrapper function to unpack args"""
     (metadata, index) = args
     return get_tiling_split_coords_tuple(*metadata, index)
 
 def process_doubles_tuple(t_width, t_height, inter_dir, img_format, double_inter_imgs):
+    """
+    Processes the two intermediate source images which share tiles for tiling.
+
+    This function opens the two images and calls a helper function to create the
+    tile. 
+
+    Parameters:
+        t_width (int): tile width
+        t_height (int): tile height
+        inter_dir (string): path to intermediate images directory
+        img_format (string): product image format
+        double_inter_imgs (list): list structure containing data required for tile creation
+    """
+
+    # Get the names of intermediates - note that all entries in quad_inter_imgs
+    # are for tiles shared by the same 2 files
     filename_left = double_inter_imgs[0][0]
     filename_right = double_inter_imgs[0][1]
 
@@ -78,7 +93,7 @@ def process_doubles_tuple(t_width, t_height, inter_dir, img_format, double_inter
 
     # Sequentially generate tiles
     for _, _, x, y, done_x, done_y, path in double_inter_imgs:
-        TileUtils.generate_tile_between_two_images(t_width, t_height, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, path, img_format, img_arr_left=img_arr_left, img_arr_right=img_arr_right)
+        TileUtils.generate_tile_between_two_images(t_width, t_height, inter_metadata_left.end_x - inter_metadata_left.start_x, inter_metadata_left.end_y - inter_metadata_left.start_y, x, y, done_x, done_y, x - inter_metadata_left.start_x, y - inter_metadata_left.start_y, path, img_format, img_arr_left, img_arr_right)
     
     # Close the images
     src_left.close()
@@ -86,11 +101,27 @@ def process_doubles_tuple(t_width, t_height, inter_dir, img_format, double_inter
     return 1
 
 def process_doubles_MP(args):
-    """ Wrapper function to unpack args """
+    """Wrapper function to unpack args for process_doubles_tuple"""
     (metadata, double_inter_imgs) = args
     return process_doubles_tuple(*metadata, double_inter_imgs)
 
 def process_quads_tuple(t_width, t_height, inter_dir, img_format, quad_inter_imgs):
+    """
+    Processes the four intermediate source images which share tiles for tiling.
+
+    This function opens the four images and calls a helper function to create the
+    tile. 
+
+    Parameters:
+        t_width (int): tile width
+        t_height (int): tile height
+        inter_dir (string): path to intermediate images directory
+        img_format (string): product image format
+        quad_inter_imgs (list): list structure containing data required for tile creation
+    """
+
+    # Get the names of intermediates - note that all entries in quad_inter_imgs
+    # are for tiles shared by the same 4 files.
     filename_TL = quad_inter_imgs[0][0]
     filename_BL = quad_inter_imgs[0][1]
     filename_TR = quad_inter_imgs[0][2]
@@ -130,13 +161,14 @@ def process_quads_tuple(t_width, t_height, inter_dir, img_format, quad_inter_img
     return 1
 
 def process_quads_MP(args):
-    """ Wrapper function to unpack args """
+    """Wrapper function to unpack args for process_quads_tuple"""
     (metadata, quad_inter_imgs) = args
     return process_quads_tuple(*metadata, quad_inter_imgs)
 
 class TileUtils():
     @classmethod
     def get_geotransform(cls, path):
+        """Creates a geotransform dictionary object from auxiliary files"""
         filename, ext = os.path.splitext(path)
         content = []
         if ext == ".tif": # Read the tfw file
@@ -166,14 +198,28 @@ class TileUtils():
         return num_rows, num_cols
 
     @classmethod
-    def img_to_tiles(cls, tiff_path, region, res, tile, tile_date_path, img_format, mp):
+    def img_to_tiles(cls, originals_path, region, res, tile, tile_date_path, img_format, mp):
         """
-            Thanks to Mianzhi Wang for publishing a great article explaining shared memory for multiprocessing
-            https://research.wmz.ninja/articles/2018/03/on-sharing-large-arrays-when-using-pythons-multiprocessing.htmlfor
+        General method which orchestrates the tiling of an original image.
+
+        This method differentiates between 'regular' and 'ultra-large' images.
+        Ultra-large images are defined as being too large for Pillow's Image
+        library to open, resulting in them having to be tiled differently than
+        'regular' images. See docstring for generate_ultra_large_tiles to see 
+        what differs.
+
+        Parameters:
+            originals_path (string): path to an original image
+            region (Rectangle): rectangular download region
+            res (float): product image resolution
+            tile (Tile): Tile object storing tiling information
+            tile_date_path (string): path to tiles for a specific date
+            img_format (string): product image format
+            mp (bool): multiprocessing flag
         """
 
         # Get metadata from original image
-        metadata = TiffMetadata(tiff_path)
+        metadata = TiffMetadata(originals_path)
         WIDTH, HEIGHT = region.calculate_width_height(res)
 
         # Check for valid tiling dimensions
@@ -184,7 +230,7 @@ class TileUtils():
         ultra_large = WIDTH * HEIGHT > 2 * Image.MAX_IMAGE_PIXELS
 
         # Use the following dictionary to get the coordinates of each tile
-        geotran_d = TileUtils.get_geotransform(tiff_path)
+        geotran_d = TileUtils.get_geotransform(originals_path)
 
         num_rows, num_cols =  TileUtils.get_num_rows_cols(tile, WIDTH, HEIGHT)
 
@@ -198,15 +244,32 @@ class TileUtils():
             print("Generating {} tiles sequentially...".format(len(pixel_coords)), flush=True)
 
         if ultra_large: 
-            TileUtils.generate_ultra_large_tiles(tiff_path, tile, WIDTH, HEIGHT, pixel_coords, img_format, mp, metadata.date)
+            TileUtils.generate_ultra_large_tiles(originals_path, tile, WIDTH, HEIGHT, pixel_coords, img_format, mp, metadata.date)
         else: 
-            TileUtils.generate_regular_tiles(tiff_path, tile, WIDTH, HEIGHT, pixel_coords, img_format, mp)
+            TileUtils.generate_regular_tiles(originals_path, tile, WIDTH, HEIGHT, pixel_coords, img_format, mp)
         print("done!")
 
     @classmethod
     def generate_pixel_coords(cls, tile, WIDTH, HEIGHT, num_rows, num_cols, metadata, geotran_d, tile_date_path, mp):
         """
-            @returns a list with all pixel coordinate information for the tiles that will be generated
+        Helper which returns a list with all pixel coordinate information for 
+        the tiles that will be generated.
+
+        Parameters:
+            tile (Tile): Tile object storing tiling information
+            WIDTH (int): width of the original image
+            HEIGHT (int): height of the original image
+            num_rows (int): number of tiles per row of tiles in original image
+            num_cols (int): number of tiles per column of tiles in original image
+            metadata (TiffMetadata): metadata for original image
+            geotran_d (dict): dictionary containing geotransform information
+            tile_date_path (string): path to tiles for a specific date
+            mp (bool): multiprocessing flag
+
+        Returns:
+            pixel_coords (list): each entry represents a tile and contains all
+            information necessary to extract the tile's location from a numpy
+            array of the original image.
         """
         num_tiles = num_rows * num_cols
         if mp:
@@ -231,12 +294,31 @@ class TileUtils():
         return pixel_coords
 
     @classmethod
-    def generate_regular_tiles(cls, tiff_path, tile, WIDTH, HEIGHT, pixel_coords, img_format, mp):
+    def generate_regular_tiles(cls, originals_path, tile, WIDTH, HEIGHT, pixel_coords, img_format, mp):
         """
-            Generates tiles for non-ultra-large images
+        Generates tiles for non-ultra-large images.
+
+        If multiprocessing, a shared array is created in memory for each process
+        to access. 
+        Thanks to Mianzhi Wang for publishing a great article explaining shared
+        memory for multiprocessing:
+        https://research.wmz.ninja/articles/2018/03/on-sharing-large-arrays-when-using-pythons-multiprocessing.htmlfor
+
+        The method iterates through each tile entry in `pixel_coords` and
+        retrieves and saves that tile from the original image array. Since the
+        image is 'regular' nothing special has to happen.
+
+        Parameters:
+            originals_path (string): path to an original image
+            tile (Tile): Tile object storing tiling information
+            WIDTH (int): width of the original image
+            HEIGHT (int): height of the original image
+            pixel_coords (list): contains pixel coordinate data for each tile
+            img_format (string): product image format
+            mp (bool): multiprocessing flag
         """
         # Open image as a numpy array in order to tile from the array
-        src = Image.open(tiff_path)
+        src = Image.open(originals_path)
         img_arr = np.array(src)
 
         if mp:
@@ -251,7 +333,7 @@ class TileUtils():
             np.copyto(X_np, img_arr)
 
             # Use multiprocessing to tile the numpy array
-            with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, None, None)) as pool:
+            with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape)) as pool:
                 multi = [pool.apply_async(TileUtils.generate_tile_from_arr, args=(tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format)) for (x, y, done_x, done_y, path) in pixel_coords]
                 f = [p.get() for p in tqdm(multi)]
                 pool.close()
@@ -264,25 +346,68 @@ class TileUtils():
         src.close()
 
     @classmethod
-    def generate_ultra_large_tiles(cls, tiff_path, tile, WIDTH, HEIGHT, pixel_coords, img_format, mp, date):
+    def generate_ultra_large_tiles(cls, originals_path, tile, WIDTH, HEIGHT, pixel_coords, img_format, mp, date):
         """
-            Generates intermediate images for the ultra large image and then tiles the intermediate images.
-            Since the intermediate images are created such that they are as close to Pillow's Image pixel size limit
-            as possible, and not necessarily aligned with the tiles, one tile may lie between two intermediate images,
-            or four intermediate images. 
+        Generates intermediate images for the ultra large image and then tiles the intermediate images.
+
+        Since the original image is too large to open with Pillow's Image library,
+        we create "intermediate" images with GDAL/rasterio, which are a step
+        between the original image and the final tiles. To optimize tiling, the
+        intermediate images are created such that they are as close to the size
+        limit as possible. Because of this, the intermediate images do not
+        necessarily align nicely with the tiles, and as a result,
+        one tile may lie between two, or four intermediate images.
+        This is handled in tile_intermediates.
+
+        Parameters:
+            originals_path (string): path to an original image
+            tile (Tile): Tile object storing tiling information
+            WIDTH (int): width of the original image
+            HEIGHT (int): height of the original image
+            pixel_coords (list): contains pixel coordinate data for each tile
+            img_format (string): product image format
+            mp (bool): multiprocessing flag
+            date (string): original image date
         """
         # Create the intermediate tiles
-        inter_dir, img_width, img_height = TileUtils.img_to_intermediate_images(tiff_path, tile, WIDTH, HEIGHT, date, img_format)
+        inter_dir, img_width, img_height = TileUtils.img_to_intermediate_images(originals_path, tile, WIDTH, HEIGHT, date, img_format)
         intermediate_files = [f for f in os.listdir(inter_dir) if f.endswith(img_format)]
 
         # Get the tiling information for all intermediate tiles
-        intermediate_info = TileUtils.getIntermediateTilingInfo(tile, pixel_coords, WIDTH, HEIGHT, img_width, img_height, intermediate_files)
+        intermediate_info = TileUtils.get_intermediate_tiling_info(tile, pixel_coords, WIDTH, HEIGHT, img_width, img_height, intermediate_files)
 
         # Perform the tiling
-        TileUtils.tile_intermediates(tile, WIDTH, HEIGHT, inter_dir, intermediate_info, mp, img_format)
+        TileUtils.tile_intermediates(tile, WIDTH, HEIGHT, inter_dir, intermediate_info, img_format, mp)
 
     @classmethod
-    def getIntermediateTilingInfo(cls, tile, pixel_coords, WIDTH, HEIGHT, img_width, img_height, intermediate_files):
+    def get_intermediate_tiling_info(cls, tile, pixel_coords, WIDTH, HEIGHT, img_width, img_height, intermediate_files):
+        """
+        Determines which intermediate images contains what tiles.
+
+        The pixel coordinates of each intermediate image is known using the
+        IntermediateMetadata class, and so checking if a tile is in an
+        intermediate image is a matter of checking whether a coordinate pair is
+        between the largest and smallest pixel coordinates of an intermediate.
+        Similar logic is applied in determining which tiles lie between two and 
+        four intermediate images.
+
+        Parameters:
+            tile (Tile): Tile object storing tiling information
+            pixel_coords (list): contains pixel coordinate data for each tile
+            WIDTH (int): width of the original image
+            HEIGHT (int): height of the original image
+            img_width (int): max intermediate image width
+            img_height (int): max intermediate image height
+            intermediate_files (list): list of all intermediate files
+
+        Returns:
+            single_inter_pixel_coords: pixel coordinate information for tiles
+                wholly inside one intermediate image
+            double_inter_pixel_coords: pixel coordinate information for tiles
+                partially between two intermediate images
+            quad_inter_pixel_coords: pixel coordinate information for tiles
+                partially between four intermediate images
+        """
         # sourcery no-metrics
         intermediate_files.sort()
 
@@ -316,17 +441,30 @@ class TileUtils():
         return single_inter_pixel_coords, double_inter_pixel_coords, quad_inter_pixel_coords
     
     @classmethod
-    def tile_intermediates(cls, tile, WIDTH, HEIGHT, inter_dir, intermediate_info, mp, img_format):
+    def tile_intermediates(cls, tile, WIDTH, HEIGHT, inter_dir, intermediate_info, img_format, mp):
         # sourcery no-metrics
         """
-            This function orchestrates the appropriate function calls to generate the tiles
-            using the intermediate images.
+        This method orchestrates the appropriate calls to generate the tiles
+        using the intermediate images and the `intermediate_info` returned by
+        get_intermediate_tiling_info.
 
-            This function deals with the following cases:
-                1. tile lies entirely in an intermediate image
-                2. tile lies along the border of two intermediate images
-                3. tile lies in the corner of four intermediate images
+        This method deals with the following cases:
+            1. tile lies entirely in an intermediate image
+            2. tile lies along the border of two intermediate images
+            3. tile lies in the corner of four intermediate images
+
+        Parameters:
+            tile (Tile): Tile object storing tiling information
+            WIDTH (int): width of the original image
+            HEIGHT (int): height of the original image
+            inter_dir (string): path to intermediates directory
+            intermediate_info (3-tuple of lists): contains pixel coordinate 
+                information for the 3 categories of tiles  (fully inside 
+                intermediate, between two, or between four intermediates)
+            img_format (string): product image format
+            mp (bool): multiprocessing flag
         """
+
         print("\tTiling complete images")
         for single_inter_imgs in tqdm(intermediate_info[0]):
             filename = single_inter_imgs[0][0]
@@ -348,7 +486,7 @@ class TileUtils():
                 np.copyto(X_np, img_arr)
 
                 # Use multiprocessing to tile the numpy array
-                with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape, None, None)) as pool:
+                with Pool(processes=NUM_CORES, initializer=init_worker, initargs=(X, X_shape)) as pool:
                     multi = [pool.apply_async(TileUtils.generate_tile_from_arr, args=(tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format,), kwds={"inter_x":(x - inter_metadata.start_x), "inter_y":(y - inter_metadata.start_y)}) for (filename, x, y, done_x, done_y, path) in single_inter_imgs]
                     f = [p.get() for p in multi]
                     pool.close()
@@ -383,8 +521,8 @@ class TileUtils():
     @classmethod
     def generate_tile_from_arr(cls, tile, WIDTH, HEIGHT, x, y, done_x, done_y, path, img_format, inter_x = None, inter_y = None, img_arr=None):
         """ 
-            Function which actually manipulates the numpy array to create a tile from the original image array 
-            If utilizing multiprocessing, this function accesses the shared image array.
+        Function which actually manipulates the numpy array to create a tile from the original image array 
+        If utilizing multiprocessing, this method accesses the shared image array.
         """
         if img_arr is None:
             img_arr = np.frombuffer(arr_dict['X'], dtype="uint8").reshape(arr_dict['X_shape'])
@@ -392,9 +530,9 @@ class TileUtils():
         real_x = x
         real_y = y
 
-        if inter_x != None:
+        if inter_x is not None:
             real_x = inter_x
-        if inter_y != None:
+        if inter_y is not None:
             real_y = inter_y
 
         # Tiling past boundaries 
@@ -411,11 +549,8 @@ class TileUtils():
         return 1
 
     @classmethod 
-    def generate_tile_between_two_images(cls, t_width, t_height, WIDTH, HEIGHT, x, y, done_x, done_y, inter_x, inter_y, path, img_format, img_arr_left=None, img_arr_right=None):
-        if img_arr_left is None:
-            img_arr_left = np.frombuffer(arr_dict['X'], dtype="uint8").reshape(arr_dict['X_shape'])
-        if img_arr_right is None:
-            img_arr_right = np.frombuffer(arr_dict['Y'], dtype="uint8").reshape(arr_dict['Y_shape'])
+    def generate_tile_between_two_images(cls, t_width, t_height, WIDTH, HEIGHT, x, y, done_x, done_y, inter_x, inter_y, path, img_format, img_arr_left, img_arr_right):
+        """Accesses two intermediate images to generate a tile"""
 
         leftover_x = t_width - (WIDTH - inter_x)
         leftover_y = t_height - (HEIGHT - inter_y)
@@ -440,6 +575,7 @@ class TileUtils():
 
     @classmethod 
     def generate_tile_between_four_images(cls, t_width, t_height, img_arr_TL, img_arr_TR, img_arr_BL,img_arr_BR, WIDTH, HEIGHT, x, y, done_x, done_y, inter_x, inter_y, path, img_format):
+        """Accesses four intermediate images to generate a tile"""
         leftover_x = t_width - (WIDTH - inter_x)
         leftover_y = t_height - (HEIGHT - inter_y)
 
@@ -458,17 +594,29 @@ class TileUtils():
 
     @classmethod
     def generate_tile_directories(cls, metadata, tile, x, y, geotran_d, tile_date_path):
+        """
+        Creates path to a tile and creates directory if non-existent.
+
+        This method is used to split the tiles generated from the image into 
+        various directories to prevent having hundreds of thousands of images in
+        a single directory. The choice to partition the tiles particularly
+        by their position on the MODIS grid is for convenience.
+
+        Returns:
+            the path to a new tile
+        """
         output_filename, region = TileUtils.generate_tile_name_with_coordinates(metadata.date, tile, x, y, geotran_d)
         output_path = tile_date_path + region.lat_lon_to_modis() + '/'
         if not os.path.exists(output_path):
             try:
                 os.mkdir(output_path)
             except FileExistsError:
-                """ Ignore exception when parallel processes attempty to create the same directory """
+                pass  # Ignore exception when parallel processes attempt to create the same directory
         return os.path.join(output_path, output_filename)
         
     @classmethod
     def generate_tile_name_with_coordinates(cls, date, tile, x, y, geotran_d):
+        """Generates name for a tile containing its lat-lon coordinates"""
         tr_x = x * geotran_d['x_size'] + geotran_d['x_min'] 
         tr_y = (y + tile.height) * geotran_d['y_size'] + geotran_d['y_min']
         bl_x = (x + tile.width) * geotran_d['x_size'] + geotran_d['x_min']
@@ -477,8 +625,9 @@ class TileUtils():
         return filename, Rectangle(Coordinate((bl_y, bl_x)), Coordinate((tr_y, tr_x)))
 
     @classmethod
-    def img_to_intermediate_images(cls, tiff_path, tile, width, height, date, img_format):
-        output_dir = os.path.join(os.path.dirname(tiff_path), 'inter_{}x{}_{}'.format(width, height, date))
+    def img_to_intermediate_images(cls, originals_path, tile, width, height, date, img_format):
+        """Creates intermediate images as specified in generate_ultra_large_tiles"""
+        output_dir = os.path.join(os.path.dirname(originals_path), 'inter_{}x{}_{}'.format(width, height, date))
         if not os.path.isdir(output_dir):
             os.mkdir(output_dir)
 
@@ -495,7 +644,7 @@ class TileUtils():
         original_max_img_width = max_img_width   # Store these values in another variable so they can be returned
         original_max_img_height = max_img_height  
         
-        # LOOP THOUGH AND GET THE DATA TO GENERATE THE INTERMEDIATE TILES
+        # Loop to get the data to generate intermediate tiles
         width_current = 0
         done_width = False
         index = 0
@@ -517,14 +666,15 @@ class TileUtils():
             width_current += max_img_width
         print("\tCreating intermediate images")
         for (width_current, height_current, width_length, height_length, index) in tqdm(intermediate_data):
-            TileUtils.generate_intermediate_image(output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format)
+            TileUtils.generate_intermediate_image(output_dir, width_current, height_current, width_length, height_length, originals_path, index, img_format)
         return output_dir, original_max_img_width, original_max_img_height
 
     @classmethod 
-    def generate_intermediate_image(cls, output_dir, width_current, height_current, width_length, height_length, tiff_path, index, img_format):
+    def generate_intermediate_image(cls, output_dir, width_current, height_current, width_length, height_length, originals_path, index, img_format):
+        """Executes command to create intermediate image"""
         output_path = os.path.join(output_dir, "{}_{}_{}_{}_{}".format(str(index).zfill(5), width_current, height_current, width_current + width_length, height_current + height_length))
         output_log_path = os.path.join(output_dir, "logs.txt")
         filename = "{}.{}".format(output_path, img_format)
         if not os.path.isfile(filename):
-            command = "gdal_translate -of {of} -srcwin --config GDAL_CACHEMAX 12000 --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {fname}".format(of=img_format.upper(), x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=tiff_path, fname=filename)
-            os.system("{} > {}".format(command, output_log_path))
+            command = "gdal_translate -of {of} -srcwin --config GDAL_CACHEMAX 12000 --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {fname}".format(of=img_format.upper(), x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=originals_path, fname=filename)
+            os.system("{} >> {}".format(command, output_log_path))

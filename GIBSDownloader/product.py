@@ -1,6 +1,12 @@
 from enum import Enum
 
 class Product(Enum):
+    """
+    Enum storing values for popular imagery products.
+
+    This functions as a shortcut for users when choosing to download popular
+    products so that they don't have to enter the full product name
+    """
     viirs = 'viirs'
     modis = 'modis'
 

@@ -9,7 +9,22 @@ import pandas as pd
 class DatasetSearcher():
     @classmethod
     def getProductInfo(cls, name):
-        # XML to parse
+        """
+        Searches the GIBS updated product list by keyword.
+
+        If `name` is a full product name, then the function returns the
+        resolution and image format associated with the product.
+        If `name` is not a full product name, then the function prints to the
+        console a list of products which contain `name`, and then gdl exits
+
+        Parameters:
+        name (string): a keyword or full product name to search
+
+        Returns:
+        (product name, product resolution, image format)
+        """
+
+        # Link to products xml sheet
         url = "https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/1.0.0/WMTSCapabilities.xml"
 
         # Read the xml as a file

@@ -127,7 +127,7 @@ If we wanted specify the tile size and overlap, while also removing the original
 These will create the following directory structure: 
 
 ```
-product_lower-lat_left-lon_start-date_end-date/
+product_lower-lat_left-lon_right-lon_start-date_end-date/
       |> original_images/
            |> product_date.jpeg
       |> tiled_images/

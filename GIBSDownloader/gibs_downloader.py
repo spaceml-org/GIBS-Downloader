@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-import os
-import shutil
 import argparse
 from argparse import ArgumentParser
+import logging
+import os
+import shutil
 
 from PIL import Image
 
@@ -16,16 +17,73 @@ from GIBSDownloader.file_metadata import TiffMetadata
 from GIBSDownloader.animator import Animator
 from GIBSDownloader.dataset_searcher import DatasetSearcher
 
+# Constants
 MAX_JPEG_SIZE = 65500
 
-def generate_download_path(start_date, end_date, bl_coords, output, name):
-    base = "{name}_{lower_lat}_{lft_lon}_{st_date}-{end_date}".format(name=name.replace(" ","-"), lower_lat=str(round(bl_coords.y, 4)), lft_lon=str(round(bl_coords.x, 4)), st_date=start_date.replace('-',''), end_date=end_date.replace('-', ''))
+def generate_download_path(start_date, end_date, bl_coords, tr_coords, output, name):
+    """
+    Creates path name to general download directory for all download files.
+
+    Every unique (product, region, dates) combination that the user downloads 
+    should generate a unique download path. If the user selects the same 
+    product, region, and range of dates, then the same path should be returned,
+    granted that the user specifies the same `output`
+
+    Parameters:
+        start_date (string): starting date for range of downloads
+        end_date (string): ending date for range of downloads
+        bl_coords (Coordinate): bottom left coordinates of the requested region
+        tr_coords (Coordinate): top right coordinates of the requested region
+        output (string): path to where the directory should be created
+        name (string): name of the product being downloaded
+
+    Returns:
+        path to output directory where everything should be downloaded
+    """
+    base = "{name}_{lower_lat}_{lft_lon}_{upper_lat}_{rgt_lon}_{st_date}-{end_date}".format(
+        name=name.replace(" ","-"), 
+        lower_lat=str(round(bl_coords.y, 2)), 
+        lft_lon=str(round(bl_coords.x, 2)), 
+        upper_lat=str(round(tr_coords.y, 2)), 
+        rgt_lon=str(round(tr_coords.x, 2)), 
+        st_date=start_date.replace('-',''), 
+        end_date=end_date.replace('-', '')
+        )
     return os.path.join(output, base)
 
+"""TODO remove logging and use logger"""
 def download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format):
     """ 
-        @returns img_format in case an image dimension exceeds the max 
-        JPEG size limit, and a GeoTiff needs to be downloaded instead of a JPEG 
+    Downloads the specified region for the range of dates
+
+    If a dimension of the image of the region being downloaded exceeds the max 
+    JPEG size limit, GeoTiff is chosen as the image format since it offers a
+    sufficiently large size.
+
+    After this function is executed, the user will have a directory set up as
+    follows:
+    download_path/
+      |> original_images/
+      |> tiled_images/
+      |> tfrecords/
+      |> xml_configs/
+
+    Parameters:
+        download_path (string): path to all output
+        xml_path (string): path to xml configs subdirectory
+        originals_path (string): path to original image downloads subdirectory
+        tiled_path (string): path to tiles subdirectory
+        tfrecords_path (string): path to tfrecords subdirectory
+        dates (date list): list of dates in the download range
+        region (Rectangle): rectangular download region
+        name (string): product name
+        res (float): product resolution
+        img_format: product image format
+
+    Returns:
+        img_format (string): the format of the downloaded images 
+        (might be different than what is specified by the product if the 
+        region is too large)
     """
     if not os.path.isdir(download_path):
         os.mkdir(download_path)
@@ -41,8 +99,8 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
         img_format = 'tif'
 
     for date in dates:
-        tiff_output = TiffDownloader.generate_download_filename(originals_path, name.replace(" ","-"), date)
-        if not os.path.isfile(tiff_output + '.' + img_format):
+        tiff_output = TiffDownloader.generate_download_filename(originals_path, name.replace(" ","-"), date) + '.' + img_format
+        if not os.path.isfile(tiff_output):
             if logging:
                 print('Downloading:', date)
             TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res, img_format)
@@ -50,7 +108,23 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
     print("The specified region and set of dates have been downloaded")
     return img_format
 
-def tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format, mp, ext=None):
+def tile_originals(originals_path, tile_res_path, tile, logging, region, res, img_format, mp, ext=None):
+    """
+    Tiles all the downloaded images.
+
+    After this function is executed, there will be a subdirectory inside of 
+    `tiled_images/` specifying the dimensions of the tiles and their resolution.
+    This subdirectory (`tile_res_path`) contains all the generated tiles.
+
+    Parameters:
+        tile_res_path (string): target output subdirectory for tiles
+        originals_path (originals_path): path to downloaded images
+        tile (Tile): Tile object storing tiling information
+        region (Rectangle): rectangular download region
+        img_format (string): image format specified by the product
+        mp (bool): multiprocessing flag
+        ext (string): image format actually downloaded
+    """
     if not os.path.isdir(tile_res_path):
         os.mkdir(tile_res_path)
 
@@ -70,6 +144,16 @@ def tile_originals(tile_res_path, originals_path, tile, logging, region, res, im
     print("The specified tiles have been generated")
 
 def tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_format):
+    """
+    Writes the generated tiles to TFRecords for efficient training in machine 
+    learning pipelines
+
+    Parameters:
+        tile_res_path (string): path to tiles
+        tfrecords_res_path (string): target output subdirectory for tfrecords
+        name (string): product name
+        img_format (string): product image format
+    """
     from GIBSDownloader.tfrecord_utils import TFRecordUtils
     if os.path.isdir(tile_res_path):
             if not os.path.isdir(tfrecords_res_path):
@@ -83,12 +167,26 @@ def tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_form
         print("Unable to write to TFRecords due to nonexistent tile path")
 
 def remove_originals(originals_path, logging):
+    """Delete the original downloaded images"""
     if logging: 
         print("Removing original images...")
     shutil.rmtree(originals_path)
     os.mkdir(originals_path)
 
 def generate_video(originals_path, region, dates, video_path, xml_path, name, res, img_format):
+    """
+    Create a video of the original images across the range of downloaded dates.
+
+    Parameters:
+        originals_path (string): path to original image downloads subdirectory
+        region (Rectangle): rectangular download region
+        dates (date list): list of dates in the download range
+        video_path (string): path to video ouput subdirectory
+        xml_path (string): path to xml configs subdirectory
+        name (string): product name
+        res (float): product resolution
+        img_format: product image format
+    """
     if not os.path.isdir(video_path):
         if not os.path.isdir(xml_path):
             os.mkdir(xml_path)
@@ -101,6 +199,12 @@ def generate_video(originals_path, region, dates, video_path, xml_path, name, re
         print("The video has already been generated")
 
 def main():
+    """
+    Parses user arguments and carries out command.
+
+    If user inputted invalid arguments, program exits with argparse.ArgumentTypeError.
+    See README.md for expected argument values
+    """
     parser = ArgumentParser()
     parser.add_argument("start_date", metavar='start-date', type=str, help="starting date for downloads")
     parser.add_argument("end_date", metavar='end-date',type=str, help="ending date for downloads")
@@ -121,7 +225,7 @@ def main():
     parser.add_argument("--name", default="VIIRS_SNPP_CorrectedReflectance_TrueColor", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
     parser.add_argument("--mp", default=False, type=bool, help="utilize multiprocessing to generate tiles")
 
-    # get the user input
+    # Get the user input
     args = parser.parse_args()
     start_date = args.start_date
     end_date = args.end_date
@@ -142,17 +246,17 @@ def main():
 
     name, res, img_format = DatasetSearcher.getProductInfo(name)
 
-    # get the latitude, longitude values from the user input
+    # Get the latitude, longitude values from the user input
     bl_coords = Coordinate([float(i) for i in args.bottom_left_coords.replace(" ","").split(',')])
     tr_coords = Coordinate([float(i) for i in args.top_right_coords.replace(" ", "").split(',')])
     region = Rectangle(bl_coords, tr_coords)
 
-    # check if inputted coordinates are valid
+    # Check if inputted coordinates are valid
     if (bl_coords.x > tr_coords.x or bl_coords.y > tr_coords.y):
         raise argparse.ArgumentTypeError('Inputted coordinates are invalid: order should be (lower_latitude,left_longitude upper_latitude,right_longitude)')
 
-    # gets paths for downloads
-    download_path = generate_download_path(start_date, end_date, bl_coords, output_path, name)
+    # Gets paths for downloads
+    download_path = generate_download_path(start_date, end_date, bl_coords, tr_coords, output_path, name)
     xml_path = download_path + '/xml_configs/'
     originals_path = download_path + '/original_images/'
     tiled_path = download_path + '/tiled_images/'
@@ -162,13 +266,14 @@ def main():
     tile_res_path = os.path.join(tiled_path, resolution) + '/'
     tfrecords_res_path = os.path.join(tfrecords_path, resolution) + '/'
 
-    # get range of dates
+    # Get range of dates
     dates = TiffDownloader.get_dates_range(start_date, end_date)
 
+    # Find the format of the image actually downloaded (may differ from the product's specified format if image too large)
     img_format_cmd = download_originals(download_path, xml_path, originals_path, tiled_path, tfrecords_path, dates, logging, region, name, res, img_format)
 
     if tiling:
-        tile_originals(tile_res_path, originals_path, tile, logging, region, res, img_format, mp, ext=img_format_cmd)
+        tile_originals(originals_path, tile_res_path, tile, logging, region, res, img_format, mp, ext=img_format_cmd)
 
     if write_tfrecords:
         tile_to_tfrecords(tile_res_path, tfrecords_res_path, logging, name, img_format)
