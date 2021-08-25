@@ -101,8 +101,7 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
     for date in dates:
         tiff_output = TiffDownloader.generate_download_filename(originals_path, name.replace(" ","-"), date) + '.' + img_format
         if not os.path.isfile(tiff_output):
-            if logging:
-                print('Downloading:', date)
+            print('Downloading:', date)
             TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res, img_format)
 
     print("The specified region and set of dates have been downloaded")
@@ -137,7 +136,6 @@ def tile_originals(originals_path, tile_res_path, tile, logging, region, res, im
         tile_date_path = tile_res_path + metadata.date + '/' # path to tiles for specific date
         if not os.path.exists(tile_date_path):
             os.mkdir(tile_date_path)
-        else:
             print("Tiling day {} of {}".format(count + 1, len(files)), flush=True)
             TileUtils.img_to_tiles(tiff_path, region, res, tile, tile_date_path, img_format, mp)
         else: 

@@ -35,12 +35,10 @@ class TiffDownloader():
         lon_lat = "{l_x} {upper_y} {r_x} {lower_y}".format(l_x=region.bl_coords.x, upper_y=region.tr_coords.y, r_x=region.tr_coords.x, lower_y=region.bl_coords.y)
 
         xml_filename = TiffDownloader.generate_xml(xml_path, name, date)
-        if maxed_jpg:
-            command = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} -co 'TFW=YES' {xml} {f}.{ext}".format(w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
-        else:
-            command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll}  {xml} {f}.{ext}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
-        os.system(command)
-        
+
+        # command = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} -co 'TFW=YES' {xml} {f}.{ext}".format(w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
+        # command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll}  {xml} {f}.{ext}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
+
         with rasterio.open(xml_filename) as src:
             wind = src.window(
                 region.bl_coords.x,
@@ -50,23 +48,43 @@ class TiffDownloader():
                 precision=21
             )
             profile = src.profile
-            profile["driver"] = img_format
-            profile["width"] = width
-            profile["height"] = height
-            if src.crs is not None:
-                profile["transform"] = from_bounds(
-                    region.bl_coords.x,
-                    region.bl_coords.y,
-                    region.tr_coords.x,
-                    region.tr_coords.y,
-                    width,
-                    height,
-                )
+            if maxed_jpg:
+                profile["driver"] = 'GTiff'
+                profile["width"] = width
+                profile["height"] = height
+                if src.crs is not None:
+                    profile["transform"] = from_bounds(
+                        region.bl_coords.x,
+                        region.bl_coords.y,
+                        region.tr_coords.x,
+                        region.tr_coords.y,
+                        width,
+                        height,
+                    )
 
-            with rasterio.open(filename, "w", **profile) as dst_src:
-                dst_src.write(
-                    src.read(window=wind, out_shape=(src.count, height, width))
-                )
+                with rasterio.open(filename, "w", **profile, tfw=True) as dst_src:
+                    dst_src.write(
+                        src.read(window=wind, out_shape=(src.count, height, width))
+                    )
+            else:
+                profile["driver"] = img_format
+                profile["width"] = width
+                profile["height"] = height
+                if src.crs is not None:
+                    profile["transform"] = from_bounds(
+                        region.bl_coords.x,
+                        region.bl_coords.y,
+                        region.tr_coords.x,
+                        region.tr_coords.y,
+                        width,
+                        height,
+                    )
+                with rasterio.open(filename, "w", **profile) as dst_src:
+                    dst_src.write(
+                        src.read(window=wind, out_shape=(src.count, height, width))
+                    )
+        # os.system(command)
+ 
 
     @classmethod
     def get_dates_range(cls, start_date, end_date):

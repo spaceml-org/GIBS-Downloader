@@ -186,7 +186,7 @@ class TileUtils():
                 bs_content = bs(content, "lxml")
                 values = str(bs_content.find("geotransform")).replace("<geotransform> ", "").replace("</geotransform>","").split(",")
                 geotran_d = {"x_min":float(values[0]),"x_size": float(values[1]), "y_min":float(values[3]),"y_size": float(values[5])}
-        return geotran_
+        return geotran_d
 
     @classmethod
     def get_num_rows_cols(cls, tile, width, height):
@@ -546,7 +546,7 @@ class TileUtils():
             incomplete_img.save(path + "." + img_format)
         else: # Tiling within boundaries
             tile_array = img_arr[real_y:real_y + tile.height, real_x:real_x + tile.width]
-            tile_img = Image.fromarray(tile_array
+            tile_img = Image.fromarray(tile_array)
             tile_img.save(path + "." + img_format)
         return 1
 
@@ -678,8 +678,8 @@ class TileUtils():
         output_log_path = os.path.join(output_dir, "logs.txt")
         filename = "{}.{}".format(output_path, img_format)
         if not os.path.isfile(filename):
-            with rasterio.Env(GDAL_PAM_ENABLED="NO"):
-                with rasterio.open(tiff_path) as src:
+            with rasterio.Env(GDAL_PAM_ENABLED="NO", GDAL_CACHEMAX=12000):
+                with rasterio.open(originals_path) as src:
                     profile = src.profile
                     profile["driver"] = img_format
                     profile["width"] = width_length
@@ -693,6 +693,6 @@ class TileUtils():
                         dst_src.write(
                             src.read(window=wind)
                         ) 
-            command = "gdal_translate -of {of} -srcwin --config GDAL_CACHEMAX 12000 --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {fname}".format(of=img_format.upper(), x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=originals_path, fname=filename)
-            os.system("{} >> {}".format(command, output_log_path))
+            # command = "gdal_translate -of {of} -srcwin --config GDAL_CACHEMAX 12000 --config GDAL_PAM_ENABLED NO {x}, {y}, {t_width}, {t_height} {tif_path} {fname}".format(of=img_format.upper(), x=str(width_current), y=str(height_current), t_width=width_length, t_height=height_length, tif_path=originals_path, fname=filename)
+            # os.system("{} >> {}".format(command, output_log_path))
 
