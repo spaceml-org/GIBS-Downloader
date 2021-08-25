@@ -8,7 +8,7 @@ class TileMetadata():
     Extracts metadata from a tile's file name
 
     Attributes:
-        date (string): Date of the tile
+        date (str): Date of the tile
         region (Rectangle): Coordinate region of the tile
     """
     def __init__(self, tile_path):
@@ -25,9 +25,9 @@ class TiffMetadata():
     Extracts metadata from the original downloaded image's file name 
 
     Attributes:
-        name (string): base file name without the path
-        date (string): date of the image
-        product_name (string): name of the downloaded imagery product
+        name (str): base file name without the path
+        date (str): date of the image
+        product_name (str): name of the downloaded imagery product
     """
     def __init__(self, tiff_path):
         filename = os.path.basename(tiff_path)

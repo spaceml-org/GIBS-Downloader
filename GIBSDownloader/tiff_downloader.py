@@ -15,7 +15,7 @@ class TiffDownloader():
         return "{}{}_{}".format(output, name, date)
 
     @classmethod
-    def download_area_tiff(cls, region, date, xml_path, filename, name, res, img_format, width=None, height=None):
+    def download_area_tiff(cls, region, date, xml_path, filename, name, res, img_format, logfile, width=None, height=None):
         """
         Calls the command to download the user's requested region.
 
@@ -36,6 +36,7 @@ class TiffDownloader():
             command = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} -co 'TFW=YES' {xml} {f}".format(w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename)
         else:
             command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll}  {xml} {f}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename)
+        command = "{} 2>&1 | tee -a {}".format(command, logfile) # redirect out to console and log
         os.system(command)
 
     @classmethod

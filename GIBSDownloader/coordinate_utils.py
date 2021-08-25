@@ -38,7 +38,7 @@ class Rectangle():
         Creates Rectangle from coordinate strings.
         
         Parameters:
-            input_str (string): The format of string should be: 
+            input_str (str): The format of string should be: 
                 'bottom left y, bottom left x, top right y, top right x'
 
         Returns:

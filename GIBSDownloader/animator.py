@@ -1,3 +1,4 @@
+import logging
 import os
 import warnings
 
@@ -6,6 +7,7 @@ from cv2 import cv2
 from PIL import Image
 
 from GIBSDownloader.tiff_downloader import TiffDownloader
+from GIBSDownloader import log
 
 warnings.simplefilter('ignore', Image.DecompressionBombWarning)
 
@@ -24,18 +26,18 @@ class Animator():
         populated with the images prepared to be joined into the video.
 
         Parameters:
-            originals_path (string): path to original image downloads subdirectory
+            originals_path (str): path to original image downloads subdirectory
             region (Rectangle): rectangular download region
             dates (date list): list of dates in the download range
-            video_path (string): path to video ouput subdirectory
-            xml_path (string): path to xml configs subdirectory
-            name (string): product name
+            video_path (str): path to video ouput subdirectory
+            xml_path (str): path to xml configs subdirectory
+            name (str): product name
             res (float): product resolution
             img_format: product image format
         """
         width, height = region.calculate_width_height(res)
         if width * height > 2 * Image.MAX_IMAGE_PIXELS:
-            print("The downloaded images are too large to generate a video. Redownloading the region with smaller image dimensions")
+            log.info("The downloaded images are too large to generate a video. Redownloading the region with smaller image dimensions")
             ratio = width / height
             resized_height = 1080
             resized_width = resized_height * ratio

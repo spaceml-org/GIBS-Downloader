@@ -94,7 +94,7 @@ The download yields the following image:
   <summary>Click here for an example of setting the resolution</summary>
 
   ---
-  By default, the `MODIS_Terra_CorrectedReflectance_TrueColor` has a resolution of .25 km<sup>2</sup>/pixel. If we want to download an image of the entire world at this default resolution, the downloaded file will be `(159840x79920` and `38 gb`. That file is incredibly useful to generate hundreds of thousands of tiles of the Earth, but it is not able to be viewed due to its large size.
+  By default, the `MODIS_Terra_CorrectedReflectance_TrueColor` has a resolution of .25 km<sup>2</sup>/pixel. If we want to download an image of the entire world at this default resolution, the downloaded file will be `(159840x79920)` and `38 gb`. That file is incredibly useful to generate hundreds of thousands of tiles of the Earth, but it is not able to be viewed due to its large size.
 
   However, if we specify the resolution to be set to 10 km<sup>2</sup>/pixel, then the downloaded file is `(3996×1998)` and `1.8 mb)` -- which can very easily be displayed. (see below)
 
@@ -183,7 +183,8 @@ If you initially download a region for a range of dates without electing to tile
 #### I want to download imagery of the entire Earth. What do I need to know?
 To download the entire Earth, the coordinates you need to enter are: `"-90, -180" "90, 180"`. The GeoTiff file for one day of the entire Earth is approximately `38 GB`. The dimensions of the file of the world will be `(159840x79920)`. If you tile this image, assuming a tile width and height of `512 pixels` and `0.5 overlap`, you should expect `194,688 tiles` to be created.
 
-### Upcoming Features
+### Upcoming Features/Developments
+* Unit tests
 * Installation process will be simplified
 
 ## Citation

@@ -1,10 +1,11 @@
 import pathlib
 import sys
-
 import xml.etree.ElementTree as ET
 import urllib.request
 
 import pandas as pd
+
+from GIBSDownloader import log
 
 class DatasetSearcher():
     @classmethod
@@ -18,7 +19,7 @@ class DatasetSearcher():
         console a list of products which contain `name`, and then gdl exits
 
         Parameters:
-        name (string): a keyword or full product name to search
+        name (str): a keyword or full product name to search
 
         Returns:
         (product name, product resolution, image format)
@@ -66,8 +67,10 @@ class DatasetSearcher():
             img_format = filter_df.Image_Format.iloc[0]
 
         else:
-            print("\n\n\nPlease enter the full imagery product name from the following list:\n")
-            print(filter_df[["Imagery_Product_Name", "Image_Resolution"]].to_string(index=False))
+            msg = "\n\nPlease enter the full imagery product name from the following list:\n{}".format(
+                filter_df[["Imagery_Product_Name", "Image_Resolution"]].to_string(index=False)
+            )
+            log.info(msg)
             sys.exit("\n\n\n")
 
         # Converting image resolution to kilometers
