@@ -128,7 +128,6 @@ The download yields the following image:
 #### Additional features
 * `--output-path`: specify the path to where the images should be downloaded (defaults to the current working directory)
 * `--remove-originals`: when set to true, the original downloaded images will be deleted and only the tiled images and TFRecords will be saved (defaults to false).  
-* `--verbose`: when set to true, prints additional information about downloading process to console (defaults to false).
 * `--keep-xml`: when set to true, the xml files generated to download using GIBS are preserved (defaults to false).
 
 ![GIBS Downloader image retrieval guide](images/step-3-gibsdownloader.jpg)
