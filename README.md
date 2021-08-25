@@ -86,7 +86,24 @@ The download yields the following image:
 ---
 </details>
 
+#### Downloading
+* `--res`: set the resolution of the downloaded image (km<sup>2</sup>/pixel). For example, in an image downloaded with a resolution of .25, each pixel covers 250 m<sup>2</sup> of land. It is recommended that the resolution is chosen from the following list: `[0.03, 0.06, 0.125, 0.25, 0.5, 1, 5, 10]`. If no resolution is specified, then the chosen imagery product's default resolution is used.
 
+<details>
+  <summary>Click here for an example of setting the resolution</summary>
+
+  ---
+  By default, the `MODIS_Terra_CorrectedReflectance_TrueColor` has a resolution of .25 km<sup>2</sup>/pixel. If we want to download an image of the entire world at this default resolution, the downloaded file will be `(159840x79920` and `38 gb`. That file is incredibly useful to generate hundreds of thousands of tiles of the Earth, but it is not able to be viewed due to its large size.
+
+  However, if we specify the resolution to be set to 10 km<sup>2</sup>/pixel, then the downloaded file is `(3996×1998)` and `1.8 mb)` -- which can very easily be displayed. (see below)
+
+  `gdl 2020-09-27 2020-09-27 "-90, -180" "90, 180" --product=modis --res=10`
+
+  ![Image of the entire world](images/MODIS-Terra-CorrectedReflectance-TrueColor_2020-09-27.jpeg)
+
+
+---
+</details>
 
 #### Tiling
 * `--tile`: when set to true, each downloaded image will be tiled. Note that the tiles will be sorted into appropriate folders based on their date and location on the [MODIS Sinusoidal Tile Grid](https://modis-land.gsfc.nasa.gov/MODLAND_grid.html) (in order to prevent the creation of a single directory with tens of thousands of images). The location is determined by the coordinates of the bottom left corner of the tile.

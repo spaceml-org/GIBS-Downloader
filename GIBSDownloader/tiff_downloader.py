@@ -33,9 +33,9 @@ class TiffDownloader():
 
         xml_filename = TiffDownloader.generate_xml(xml_path, name, date)
         if maxed_jpg:
-            command = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} -co 'TFW=YES' {xml} {f}.{ext}".format(w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
+            command = "gdal_translate -of GTiff -outsize {w} {h} -projwin {ll} -co 'TFW=YES' {xml} {f}".format(w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename)
         else:
-            command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll}  {xml} {f}.{ext}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename, ext=img_format)
+            command = "gdal_translate -of {of} -outsize {w} {h} -projwin {ll}  {xml} {f}".format(of=img_format.upper(), w=width, h=height, ll=lon_lat, xml=xml_filename, f=filename)
         os.system(command)
 
     @classmethod

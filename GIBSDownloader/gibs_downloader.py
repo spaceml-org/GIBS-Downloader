@@ -224,6 +224,7 @@ def main():
     parser.add_argument("--animate", default=False, type=bool, help="Generate a timelapse video of the downloaded region")
     parser.add_argument("--name", default="VIIRS_SNPP_CorrectedReflectance_TrueColor", type=str, help="enter the full name of the NASA imagery product and its image resolution separated by comma")
     parser.add_argument("--mp", default=False, type=bool, help="utilize multiprocessing to generate tiles")
+    parser.add_argument("--res", default=None, type=float, help="set the download resolution from these values [0.03, 0.06, 0.125, 0.25, 0.5, 1, 5, 10]")
 
     # Get the user input
     args = parser.parse_args()
@@ -245,6 +246,8 @@ def main():
         name = product.get_long_name()
 
     name, res, img_format = DatasetSearcher.getProductInfo(name)
+    if args.res is not None:
+        res = args.res
 
     # Get the latitude, longitude values from the user input
     bl_coords = Coordinate([float(i) for i in args.bottom_left_coords.replace(" ","").split(',')])
