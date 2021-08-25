@@ -24,7 +24,8 @@ GIBS Downloader is a command-line tool which facilitates the downloading of NASA
 E.g. you can download images of the first week of the 2020 California wildfires as follows:  
 `gdl 2020-08-16 2020-08-22 "37.003277, -124.328539" "40.353784, -120.253964"`   
 \
-Read further for more explanation on how to get the most out of GIBS Downloader.
+Read further for more explanation on how to get the most out of GIBS Downloader. Alternatively, [![Google Colab Notebook Example](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/spaceml-org/GIBS-Downloader/blob/main/notebooks/GIBS_Downloader_Demo.ipynb) to start using GIBS Downloader immediately.
+
 
 ![GIBS Downloader three step installation guide](images/3-step-guide-gibsdownloader.jpg)
 
