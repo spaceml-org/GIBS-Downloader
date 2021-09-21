@@ -229,7 +229,7 @@ class TileUtils():
         else:
             pixel_coords = []
             for index in range(num_iterations):
-                pixel_coords.append(getTilingSplitCoordsTuple(tile, WIDTH, HEIGHT, geoTran_d, tile_date_path, num_rows, num_cols, index))
+                pixel_coords.append(getTilingSplitCoordsTuple(metadata,tile, WIDTH, HEIGHT, geoTran_d, tile_date_path, num_rows, num_cols, index))
         print("done!")
 
         if mp:
