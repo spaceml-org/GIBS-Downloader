@@ -22,7 +22,9 @@
 GIBS Downloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for NASA GIBS imagery products found [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products).  
 \
 E.g. you can download images of the first week of the 2020 California wildfires as follows:  
-`gdl 2020-08-16 2020-08-22 "37.003277, -124.328539" "40.353784, -120.253964"`   
+```bash
+$ gdl 2020-08-16 2020-08-22 "37.003277, -124.328539" "40.353784, -120.253964"
+```   
 \
 Read further for more explanation on how to get the most out of GIBS Downloader. Alternatively, [![Google Colab Notebook Example](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/spaceml-org/GIBS-Downloader/blob/main/notebooks/GIBS_Downloader_Demo.ipynb) to start using GIBS Downloader immediately.
 
@@ -30,11 +32,17 @@ Read further for more explanation on how to get the most out of GIBS Downloader.
 ![GIBS Downloader three step installation guide](images/3-step-guide-gibsdownloader.jpg)
 
 ## Dependencies 
-This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBS Downloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is with conda. After installing conda from either [Ananconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html), create a conda environment in which you will use the GIBS Downloader, and then install GDAL as follows: ``conda install -c conda-forge gdal=3.2.0``.
+This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBS Downloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is with conda. After installing conda from either [Ananconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html), create a conda environment in which you will use the GIBS Downloader, and then install GDAL as follows: 
+```bash 
+$ conda install -c conda-forge gdal=3.2.0
+```
 
 
 ## Installation 
-Once GDAL is installed on your machine, the GIBS Downloader package can be installed using: `pip install git+https://github.com/spaceml-org/GIBS-Downloader.git#egg=GIBSDownloader`  
+Once GDAL is installed on your machine, the GIBS Downloader package can be installed using: 
+```bash
+$ pip install git+https://github.com/spaceml-org/GIBS-Downloader.git#egg=GIBSDownloader
+```  
 Once installed, the packaged can be referenced as `gdl` on the command-line.  
 \
 **NOTE:** this package must be installed in the same environment in which you installed GDAL.
@@ -64,7 +72,9 @@ As well as the required positional arguments, the GIBS Downloader also offers so
   ---
   Suppose the user wants a dataset of images of population density for North America. To utilize the search feature, the user might enter the following command: 
   
-  `gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="population density"`
+  ```bash
+  $ gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="population density"
+  ```
 
 GIBS Downloader will return the following search results:
 
@@ -78,7 +88,9 @@ GIBS Downloader will return the following search results:
 
 The user is provided with the full names of all imagery products featuring "population" as well as their associated resolutions. To download population density images from 2020, the user would then enter the same command as before, replacing "population" with the full imagery layer name:
 
-`gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="GPW_Population_Density_2020"`
+```bash
+$ gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="GPW_Population_Density_2020"
+```
 
 The download yields the following image: 
 
@@ -98,7 +110,9 @@ The download yields the following image:
 
   However, if we specify the resolution to be set to 10 km<sup>2</sup>/pixel, then the downloaded file is `(3996×1998)` and `1.8 mb)` -- which can very easily be displayed. (see below)
 
-  `gdl 2020-09-27 2020-09-27 "-90, -180" "90, 180" --product=modis --res=10`
+  ```bash
+  gdl 2020-09-27 2020-09-27 "-90, -180" "90, 180" --product=modis --res=10
+  ```
 
   ![Image of the entire world](images/MODIS-Terra-CorrectedReflectance-TrueColor_2020-09-27.jpeg)
 
@@ -136,10 +150,14 @@ The download yields the following image:
 Say we want to download MODIS images of the Bay Area in California from 15 September 2020 to 30 September 2020, while also tiling the downloaded images and writing to TFRecords.  
 \
 This can be done with the following command:  
-`gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --generate-tfrecords=true --product=modis`.  
+```bash
+$ gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --generate-tfrecords=true --product=modis
+```  
 \
 If we wanted specify the tile size and overlap, while also removing the original downloaded images, the command would be:  
-`gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0 --remove-originals=true --generate-tfrecords=true --product=modis`  
+```bash
+$ gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0 --remove-originals=true --generate-tfrecords=true --product=modis
+```  
 \
 These will create the following directory structure: 
 
