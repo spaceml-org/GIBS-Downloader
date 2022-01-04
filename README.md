@@ -23,7 +23,7 @@ GIBS Downloader is a command-line tool which facilitates the downloading of NASA
 \
 E.g. you can download images of the first week of the 2020 California wildfires as follows:  
 ```bash
-$ gdl 2020-08-16 2020-08-22 "37.003277, -124.328539" "40.353784, -120.253964"
+gdl 2020-08-16 2020-08-22 "37.003277, -124.328539" "40.353784, -120.253964"
 ```   
 \
 Read further for more explanation on how to get the most out of GIBS Downloader. Alternatively, [![Google Colab Notebook Example](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/spaceml-org/GIBS-Downloader/blob/main/notebooks/GIBS_Downloader_Demo.ipynb) to start using GIBS Downloader immediately.
@@ -34,14 +34,14 @@ Read further for more explanation on how to get the most out of GIBS Downloader.
 ## Dependencies 
 This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBS Downloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is with conda. After installing conda from either [Ananconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html), create a conda environment in which you will use the GIBS Downloader, and then install GDAL as follows: 
 ```bash 
-$ conda install -c conda-forge gdal=3.2.0
+conda install -c conda-forge gdal=3.2.0
 ```
 
 
 ## Installation 
 Once GDAL is installed on your machine, the GIBS Downloader package can be installed using: 
 ```bash
-$ pip install git+https://github.com/spaceml-org/GIBS-Downloader.git#egg=GIBSDownloader
+pip install git+https://github.com/spaceml-org/GIBS-Downloader.git#egg=GIBSDownloader
 ```  
 Once installed, the packaged can be referenced as `gdl` on the command-line.  
 \
@@ -73,7 +73,7 @@ As well as the required positional arguments, the GIBS Downloader also offers so
   Suppose the user wants a dataset of images of population density for North America. To utilize the search feature, the user might enter the following command: 
   
   ```bash
-  $ gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="population density"
+  gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="population density"
   ```
 
 GIBS Downloader will return the following search results:
@@ -89,7 +89,7 @@ GIBS Downloader will return the following search results:
 The user is provided with the full names of all imagery products featuring "population" as well as their associated resolutions. To download population density images from 2020, the user would then enter the same command as before, replacing "population" with the full imagery layer name:
 
 ```bash
-$ gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="GPW_Population_Density_2020"
+gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="GPW_Population_Density_2020"
 ```
 
 The download yields the following image: 
@@ -151,12 +151,12 @@ Say we want to download MODIS images of the Bay Area in California from 15 Septe
 \
 This can be done with the following command:  
 ```bash
-$ gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --generate-tfrecords=true --product=modis
+gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --generate-tfrecords=true --product=modis
 ```  
 \
 If we wanted specify the tile size and overlap, while also removing the original downloaded images, the command would be:  
 ```bash
-$ gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0 --remove-originals=true --generate-tfrecords=true --product=modis
+gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0 --remove-originals=true --generate-tfrecords=true --product=modis
 ```  
 \
 These will create the following directory structure: 

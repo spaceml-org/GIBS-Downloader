@@ -108,7 +108,7 @@ def download_originals(download_path, xml_path, originals_path, tiled_path, tfre
             log.info('Downloading: %s', date.strftime("%Y-%m-%d"))
             TiffDownloader.download_area_tiff(region, date.strftime("%Y-%m-%d"), xml_path, tiff_output, name, res, img_format, logfile)
             
-    log.info("The specified region and set of dates have been downloaded")
+    log.info("The region and set of dates have been downloaded")
     return img_format
 
 def tile_originals(originals_path, tile_res_path, tile, region, res, img_format, mp, ext=None):
@@ -146,7 +146,7 @@ def tile_originals(originals_path, tile_res_path, tile, region, res, img_format,
         else: 
             msg = "Tiles for day {} have already been generated. Moving on to the next day".format(count + 1)
             log.info(msg)
-    log.info("The specified tiles have been generated")
+    log.info("The tiles have been generated")
 
 def tile_to_tfrecords(tile_res_path, tfrecords_res_path, name, img_format):
     """
@@ -167,7 +167,7 @@ def tile_to_tfrecords(tile_res_path, tfrecords_res_path, name, img_format):
                 log.info(msg)
                 TFRecordUtils.write_to_tfrecords(tile_res_path, tfrecords_res_path, name, img_format)
             else:
-                log.info("The specified TFRecords have already been written")
+                log.info("The TFRecords have already been written")
     else: 
         log.info("Unable to write to TFRecords due to nonexistent tile path")
 

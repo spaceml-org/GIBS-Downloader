@@ -9,8 +9,8 @@ class Coordinate():
     Stores coordinate information
     
     Attributes:
-        x (int): longitude
-        y (int): latitude
+        x (float): longitude
+        y (float): latitude
     """
     def __init__(self, coords):
         """coords: (latitude, longitude)"""
@@ -57,7 +57,18 @@ class Rectangle():
 
     def calculate_width_height(self, resolution):
         """ 
-        Calculates the necessary width and height of image encompassing Rectangle's bounding box
+        Approximates the necessary width and height of image encompassing Rectangle's bounding box.
+
+        The width is found by taking the difference of the longitudes of the corners of the bounding
+        box and multiplying the result by `km_per_deg_at_lat`. This approximates the distance
+        in kilometers between the two longitudes. `km_per_deg_at_lat` depends on the latitude of the 
+        region, as the distance in kilometers between longitudes differs based on where you are in the 
+        globe. The height is found in a similar manner, except it is multiplied by a constant, 111,
+        as the distance between latitudes is fairly constant throughout the globe. 
+        Then, the pixel width and height is obtained by dividing by the pixel resolution (i.e. km/pixel).
+        
+        Read more about the constants used here: 
+        https://www.thoughtco.com/degree-of-latitude-and-longitude-distance-4070616
 
         Parameters:
             resolution (float): represents the pixel resolution, i.e. km/pixel. 

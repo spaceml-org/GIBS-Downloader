@@ -140,42 +140,42 @@ def process_quads_tuple(t_width, t_height, inter_dir, img_format, quad_inter_img
 
     # Get the names of intermediates - note that all entries in quad_inter_imgs
     # are for tiles shared by the same 4 files.
-    filename_TL = quad_inter_imgs[0][0]
-    filename_BL = quad_inter_imgs[0][1]
-    filename_TR = quad_inter_imgs[0][2]
-    filename_BR = quad_inter_imgs[0][3]       
+    filename_tl = quad_inter_imgs[0][0]
+    filename_bl = quad_inter_imgs[0][1]
+    filename_tr = quad_inter_imgs[0][2]
+    filename_br = quad_inter_imgs[0][3]       
 
-    inter_metadata_TL = IntermediateMetadata(filename_TL)
-    inter_metadata_TR = IntermediateMetadata(filename_TR)
-    inter_metadata_BL = IntermediateMetadata(filename_BL)
-    inter_metadata_BR = IntermediateMetadata(filename_BR)
+    inter_metadata_tl = IntermediateMetadata(filename_tl)
+    inter_metadata_tr = IntermediateMetadata(filename_tr)
+    inter_metadata_bl = IntermediateMetadata(filename_bl)
+    inter_metadata_br = IntermediateMetadata(filename_br)
 
-    img_path_TL = os.path.join(inter_dir, filename_TL)
-    img_path_TR = os.path.join(inter_dir, filename_TR)
-    img_path_BL = os.path.join(inter_dir, filename_BL)
-    img_path_BR = os.path.join(inter_dir, filename_BR)
+    img_path_tl = os.path.join(inter_dir, filename_tl)
+    img_path_tr = os.path.join(inter_dir, filename_tr)
+    img_path_bl = os.path.join(inter_dir, filename_bl)
+    img_path_br = os.path.join(inter_dir, filename_br)
 
-    src_TL = Image.open(img_path_TL)
-    img_arr_TL = np.array(src_TL)
+    src_tl = Image.open(img_path_tl)
+    img_arr_tl = np.array(src_tl)
 
-    src_TR = Image.open(img_path_TR)
-    img_arr_TR = np.array(src_TR)
+    src_tr = Image.open(img_path_tr)
+    img_arr_tr = np.array(src_tr)
 
-    src_BL = Image.open(img_path_BL)
-    img_arr_BL = np.array(src_BL)
+    src_bl = Image.open(img_path_bl)
+    img_arr_bl = np.array(src_bl)
     
-    src_BR = Image.open(img_path_BR)
-    img_arr_BR = np.array(src_BR)
+    src_br = Image.open(img_path_br)
+    img_arr_br = np.array(src_br)
 
     # Sequentially generate the tiles between four images since overhead in allocating the four RawArrays is not worth it for the few tiles that lie between four images
     for _, _, _, _, x, y, done_x, done_y, path in quad_inter_imgs:
-        TileUtils.generate_tile_between_four_images(t_width, t_height, img_arr_TL, img_arr_TR, img_arr_BL, img_arr_BR, inter_metadata_TL.end_x - inter_metadata_TL.start_x, inter_metadata_TL.end_y - inter_metadata_TL.start_y, x, y, done_x, done_y, x - inter_metadata_TL.start_x, y - inter_metadata_TL.start_y, path, img_format)
+        TileUtils.generate_tile_between_four_images(t_width, t_height, img_arr_tl, img_arr_tr, img_arr_bl, img_arr_br, inter_metadata_tl.end_x - inter_metadata_tl.start_x, inter_metadata_tl.end_y - inter_metadata_tl.start_y, x, y, done_x, done_y, x - inter_metadata_tl.start_x, y - inter_metadata_tl.start_y, path, img_format)
 
     # Close the images
-    src_TL.close()
-    src_TR.close()
-    src_BL.close()
-    src_BR.close()
+    src_tl.close()
+    src_tr.close()
+    src_bl.close()
+    src_br.close()
     return 1
 
 def process_quads_MP(args):
@@ -254,7 +254,7 @@ class TileUtils():
 
         log.info("Gathering tiling information...")
         pixel_coords = TileUtils.generate_pixel_coords(tile, WIDTH, HEIGHT, num_rows, num_cols, metadata, geotran_d, tile_date_path, mp)
-        log.info("done!")
+        log.info("Tiling information has been gathered.")
 
         if mp:
             msg = "Generating {} tiles using {} processes...".format(len(pixel_coords), NUM_CORES)
@@ -265,7 +265,7 @@ class TileUtils():
             TileUtils.generate_ultra_large_tiles(originals_path, tile, WIDTH, HEIGHT, pixel_coords, img_format, mp, metadata.date)
         else: 
             TileUtils.generate_regular_tiles(originals_path, tile, WIDTH, HEIGHT, pixel_coords, img_format, mp)
-        log.info("done!")
+        log.info("Tiling complete.")
 
     @classmethod
     def generate_pixel_coords(cls, tile, WIDTH, HEIGHT, num_rows, num_cols, metadata, geotran_d, tile_date_path, mp):
@@ -598,15 +598,15 @@ class TileUtils():
             complete_img.save(path + "." + img_format)
 
     @classmethod 
-    def generate_tile_between_four_images(cls, t_width, t_height, img_arr_TL, img_arr_TR, img_arr_BL,img_arr_BR, WIDTH, HEIGHT, x, y, done_x, done_y, inter_x, inter_y, path, img_format):
+    def generate_tile_between_four_images(cls, t_width, t_height, img_arr_tl, img_arr_tr, img_arr_bl,img_arr_br, WIDTH, HEIGHT, x, y, done_x, done_y, inter_x, inter_y, path, img_format):
         """Accesses four intermediate images to generate a tile"""
         leftover_x = t_width - (WIDTH - inter_x)
         leftover_y = t_height - (HEIGHT - inter_y)
 
-        top_left_chunk = img_arr_TL[inter_y:min(inter_y + t_height, HEIGHT), inter_x:min(inter_x + t_width, WIDTH)]
-        top_right_chunk = img_arr_TR[inter_y:inter_y + t_height, 0:leftover_x]
-        bot_left_chunk = img_arr_BL[0:leftover_y, inter_x:inter_x + t_height]
-        bot_right_chunk = img_arr_BR[0:leftover_y, 0:leftover_x]
+        top_left_chunk = img_arr_tl[inter_y:min(inter_y + t_height, HEIGHT), inter_x:min(inter_x + t_width, WIDTH)]
+        top_right_chunk = img_arr_tr[inter_y:inter_y + t_height, 0:leftover_x]
+        bot_left_chunk = img_arr_bl[0:leftover_y, inter_x:inter_x + t_height]
+        bot_right_chunk = img_arr_br[0:leftover_y, 0:leftover_x]
     
         empty_array = np.zeros((t_height, t_height, 3), dtype=np.uint8)
         empty_array[0:top_left_chunk.shape[0], 0:top_left_chunk.shape[1]] = top_left_chunk

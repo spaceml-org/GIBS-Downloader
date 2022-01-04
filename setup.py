@@ -12,7 +12,6 @@ setup(
     version='1.0.0', 
     license='Apache License 2.0',
     author='Fernando Lisboa, Navya Sandadi, Shivam Verma', 
-    author_email='0fernando.lisboa@gmail.com', 
     url='https://github.com/spaceml-org/GIBS-Downloader', 
     description='Downloading tool for NASA GIBS satellite imagery', 
     long_description=long_description, 
