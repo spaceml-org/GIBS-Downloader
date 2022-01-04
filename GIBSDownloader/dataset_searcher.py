@@ -1,15 +1,31 @@
 import pathlib
 import sys
-
 import xml.etree.ElementTree as ET
 import urllib.request
 
 import pandas as pd
 
+from GIBSDownloader import log
+
 class DatasetSearcher():
     @classmethod
     def getProductInfo(cls, name):
-        # XML to parse
+        """
+        Searches the GIBS updated product list by keyword.
+
+        If `name` is a full product name, then the function returns the
+        resolution and image format associated with the product.
+        If `name` is not a full product name, then the function prints to the
+        console a list of products which contain `name`, and then gdl exits
+
+        Parameters:
+        name (str): a keyword or full product name to search
+
+        Returns:
+        (product name, product resolution, image format)
+        """
+
+        # Link to products xml sheet
         url = "https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/1.0.0/WMTSCapabilities.xml"
 
         # Read the xml as a file
@@ -25,9 +41,8 @@ class DatasetSearcher():
                     product_name = child.text
                 if 'Format' in str(child):
                     img_format = child.text.replace('image/',"")
-                if 'TileMatrixSetLink' in str(child):
-                    if 'TileMatrixSet' in str(child[0]):
-                        img_res = child[0].text
+                if 'TileMatrixSetLink' in str(child) and 'TileMatrixSet' in str(child[0]):
+                    img_res = child[0].text
             imagery_prods.append([product_name,img_res,img_format])
 
         # Convert the list of products to pandas dataframe
@@ -44,16 +59,18 @@ class DatasetSearcher():
             name = filter_df.Imagery_Product_Name.item().replace("_"," ")
             res = filter_df.Image_Resolution.item()
             img_format = filter_df.Image_Format.item()
-            
+
         elif len(set(filter_df.Imagery_Product_Name)) == 1 and name[0] == list(set(filter_df.Imagery_Product_Name))[0].lower():
             filter_df = filter_df.sort_values(by=["Image_Resolution"])
             name = filter_df.Imagery_Product_Name.iloc[0].replace("_"," ")
             res = filter_df.Image_Resolution.iloc[0]
             img_format = filter_df.Image_Format.iloc[0]
-            
+
         else:
-            print("\n\n\nPlease enter the full imagery product name from the following list:\n")
-            print(filter_df[["Imagery_Product_Name", "Image_Resolution"]].to_string(index=False))
+            msg = "\n\nPlease enter the full imagery product name from the following list:\n{}".format(
+                filter_df[["Imagery_Product_Name", "Image_Resolution"]].to_string(index=False)
+            )
+            log.info(msg)
             sys.exit("\n\n\n")
 
         # Converting image resolution to kilometers

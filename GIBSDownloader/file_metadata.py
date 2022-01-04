@@ -4,16 +4,31 @@ from GIBSDownloader.coordinate_utils import Rectangle
 from GIBSDownloader.product import Product
 
 class TileMetadata():
+    """
+    Extracts metadata from a tile's file name
+
+    Attributes:
+        date (str): Date of the tile
+        region (Rectangle): Coordinate region of the tile
+    """
     def __init__(self, tile_path):
         filename = os.path.basename(tile_path)
         components = filename.split('_')
-        date_str = components[0] # "2020-09-15"
-        region_str = os.path.splitext(components[1])[0] # "038.1579,-121.3758,037.0042,-122.8529"
+        date_str = components[0] 
+        region_str = os.path.splitext(components[1])[0]
         region = Rectangle.from_str(region_str)
         self.date = date_str
         self.region = region
 
 class TiffMetadata():
+    """
+    Extracts metadata from the original downloaded image's file name 
+
+    Attributes:
+        name (str): base file name without the path
+        date (str): date of the image
+        product_name (str): name of the downloaded imagery product
+    """
     def __init__(self, tiff_path):
         filename = os.path.basename(tiff_path)
         components = filename.split('_')
@@ -23,6 +38,19 @@ class TiffMetadata():
         self.product_name = components[0]
 
 class IntermediateMetadata():
+    """
+    Extracts metadata from an intermediate image's file name
+
+    The extracted metadata is useful in determining which intermediate image
+    contains a given tile based on the intermediate image's pixel coordinates in
+    the original image. The metadata stores these pixel coordinates.
+
+    Attributes:
+        start_x (int): x-pixel coordinate of the top left of the intermediate
+        start_y (int): y-pixel coordinate of the top left of the intermediate
+        end_x (int): x-pixel coordinate of the bottom right of the intermediate
+        end_y (int): y-pixel coordinate of the bottom right of the intermediate
+    """
     def __init__(self, inter_path):
         filename = os.path.basename(inter_path)
         components = filename.split("_")

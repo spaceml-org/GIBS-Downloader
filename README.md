@@ -22,18 +22,27 @@
 GIBS Downloader is a command-line tool which facilitates the downloading of NASA satellite imagery and offers different functionalities in order to prepare the images for training in a machine learning pipeline. The tool currently provides support for NASA GIBS imagery products found [here](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products).  
 \
 E.g. you can download images of the first week of the 2020 California wildfires as follows:  
-`gdl 2020-08-16 2020-08-22 "37.003277, -124.328539" "40.353784, -120.253964"`   
+```bash
+gdl 2020-08-16 2020-08-22 "37.003277, -124.328539" "40.353784, -120.253964"
+```   
 \
-Read further for more explanation on how to get the most out of GIBS Downloader.
+Read further for more explanation on how to get the most out of GIBS Downloader. Alternatively, [![Google Colab Notebook Example](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/spaceml-org/GIBS-Downloader/blob/main/notebooks/GIBS_Downloader_Demo.ipynb) to start using GIBS Downloader immediately.
+
 
 ![GIBS Downloader three step installation guide](images/3-step-guide-gibsdownloader.jpg)
 
 ## Dependencies 
-This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBS Downloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is with conda. After installing conda from either [Ananconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html), create a conda environment in which you will use the GIBS Downloader, and then install GDAL as follows: ``conda install -c conda-forge gdal=3.2.0``.
+This package depends on the GDAL translator library. Unfortunately, GDAL is not pip installable. Before installing the GIBS Downloader package and thus the GDAL Python binding, you have to install GDAL on your machine. I have found that one of the easiest ways to do this is with conda. After installing conda from either [Ananconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html), create a conda environment in which you will use the GIBS Downloader, and then install GDAL as follows: 
+```bash 
+conda install -c conda-forge gdal=3.2.0
+```
 
 
 ## Installation 
-Once GDAL is installed on your machine, the GIBS Downloader package can be installed using: `pip install git+https://github.com/spaceml-org/GIBS-Downloader.git#egg=GIBSDownloader`  
+Once GDAL is installed on your machine, the GIBS Downloader package can be installed using: 
+```bash
+pip install git+https://github.com/spaceml-org/GIBS-Downloader.git#egg=GIBSDownloader
+```  
 Once installed, the packaged can be referenced as `gdl` on the command-line.  
 \
 **NOTE:** this package must be installed in the same environment in which you installed GDAL.
@@ -63,7 +72,9 @@ As well as the required positional arguments, the GIBS Downloader also offers so
   ---
   Suppose the user wants a dataset of images of population density for North America. To utilize the search feature, the user might enter the following command: 
   
-  `gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="population density"`
+  ```bash
+  gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="population density"
+  ```
 
 GIBS Downloader will return the following search results:
 
@@ -77,7 +88,9 @@ GIBS Downloader will return the following search results:
 
 The user is provided with the full names of all imagery products featuring "population" as well as their associated resolutions. To download population density images from 2020, the user would then enter the same command as before, replacing "population" with the full imagery layer name:
 
-`gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="GPW_Population_Density_2020"`
+```bash
+gdl 2020-09-15 2020-09-15 "33.33220194089801, -116.2071864542481" "47.13878705347208, -66.28531296463223" --name="GPW_Population_Density_2020"
+```
 
 The download yields the following image: 
 
@@ -86,7 +99,26 @@ The download yields the following image:
 ---
 </details>
 
+#### Downloading
+* `--res`: set the resolution of the downloaded image (km<sup>2</sup>/pixel). For example, in an image downloaded with a resolution of .25, each pixel covers 250 m<sup>2</sup> of land. It is recommended that the resolution is chosen from the following list: `[0.03, 0.06, 0.125, 0.25, 0.5, 1, 5, 10]`. If no resolution is specified, then the chosen imagery product's default resolution is used.
 
+<details>
+  <summary>Click here for an example of setting the resolution</summary>
+
+  ---
+  By default, the `MODIS_Terra_CorrectedReflectance_TrueColor` has a resolution of .25 km<sup>2</sup>/pixel. If we want to download an image of the entire world at this default resolution, the downloaded file will be `(159840x79920)` and `38 gb`. That file is incredibly useful to generate hundreds of thousands of tiles of the Earth, but it is not able to be viewed due to its large size.
+
+  However, if we specify the resolution to be set to 10 km<sup>2</sup>/pixel, then the downloaded file is `(3996×1998)` and `1.8 mb)` -- which can very easily be displayed. (see below)
+
+  ```bash
+  gdl 2020-09-27 2020-09-27 "-90, -180" "90, 180" --product=modis --res=10
+  ```
+
+  ![Image of the entire world](images/MODIS-Terra-CorrectedReflectance-TrueColor_2020-09-27.jpeg)
+
+
+---
+</details>
 
 #### Tiling
 * `--tile`: when set to true, each downloaded image will be tiled. Note that the tiles will be sorted into appropriate folders based on their date and location on the [MODIS Sinusoidal Tile Grid](https://modis-land.gsfc.nasa.gov/MODLAND_grid.html) (in order to prevent the creation of a single directory with tens of thousands of images). The location is determined by the coordinates of the bottom left corner of the tile.
@@ -110,7 +142,6 @@ The download yields the following image:
 #### Additional features
 * `--output-path`: specify the path to where the images should be downloaded (defaults to the current working directory)
 * `--remove-originals`: when set to true, the original downloaded images will be deleted and only the tiled images and TFRecords will be saved (defaults to false).  
-* `--verbose`: when set to true, prints additional information about downloading process to console (defaults to false).
 * `--keep-xml`: when set to true, the xml files generated to download using GIBS are preserved (defaults to false).
 
 ![GIBS Downloader image retrieval guide](images/step-3-gibsdownloader.jpg)
@@ -119,15 +150,19 @@ The download yields the following image:
 Say we want to download MODIS images of the Bay Area in California from 15 September 2020 to 30 September 2020, while also tiling the downloaded images and writing to TFRecords.  
 \
 This can be done with the following command:  
-`gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --generate-tfrecords=true --product=modis`.  
+```bash
+gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --generate-tfrecords=true --product=modis
+```  
 \
 If we wanted specify the tile size and overlap, while also removing the original downloaded images, the command would be:  
-`gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0 --remove-originals=true --generate-tfrecords=true --product=modis`  
+```bash
+gdl 2020-09-15 2020-09-30 "37.003277, -124.328539" "40.353784, -120.253964" --tile=true --tile-width=256 --tile-height=256 --tile-overlap=0 --remove-originals=true --generate-tfrecords=true --product=modis
+```  
 \
 These will create the following directory structure: 
 
 ```
-product_lower-lat_left-lon_start-date_end-date/
+product_lower-lat_left-lon_right-lon_start-date_end-date/
       |> original_images/
            |> product_date.jpeg
       |> tiled_images/
@@ -157,7 +192,7 @@ On [Google Maps](https://www.google.com/maps), you can right click at any point 
 Each imagery [product](https://wiki.earthdata.nasa.gov/display/GIBS/GIBS+Available+Imagery+Products) has an associated file format, and your download will try to be in that format (usually either JPEG or PNG). However, if the region you elect to download is too large for one file as the specified format, then your data will be downloaded as a GeoTiff. Then, once you choose to tile that image, the generated tiles will be the format associated with the product (again, usually JPEG or PNG).
 
 #### What is tiling?
-The image files for the downloaded regions can potentially be very large images that you might not be able to work with directly (think images of the whole world). Tiling makes smaller "tiles" from the large image, which are essentially smaller images that combine to form the larger one.
+The image files for the downloaded regions can potentially be very large images that you might not be able to work with directly (think images of the whole world). Tiling makes smaller "tiles" from the large image, which are essentially smaller images that combine to form the larger one. These tiles typically serve as input to machine learning models.
 
 #### Can I tile images and write to TFRecords after already having downloaded them?
 If you initially download a region for a range of dates without electing to tile the images, you can call the command again with the same coordinates for the region and same range of dates but with the tiling flag set to true, and the package will tile the already downloaded images. You can also call the same command multiple times with varying tile sizes and overlaps, and the package will create new folders in `tiled_images/` for each specified combination of tile size and overlap. It will not download the tiff files for the same region and dates twice. Note that if you select `--remove-originals`, you will not be able to perform these additional tilings after the initial command, as the original images will be deleted.
@@ -165,7 +200,8 @@ If you initially download a region for a range of dates without electing to tile
 #### I want to download imagery of the entire Earth. What do I need to know?
 To download the entire Earth, the coordinates you need to enter are: `"-90, -180" "90, 180"`. The GeoTiff file for one day of the entire Earth is approximately `38 GB`. The dimensions of the file of the world will be `(159840x79920)`. If you tile this image, assuming a tile width and height of `512 pixels` and `0.5 overlap`, you should expect `194,688 tiles` to be created.
 
-### Upcoming Features
+### Upcoming Features/Developments
+* Unit tests
 * Installation process will be simplified
 
 ## Citation
